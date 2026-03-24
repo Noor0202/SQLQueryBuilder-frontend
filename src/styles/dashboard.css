@@ -1,0 +1,57 @@
+/* frontend/src/styles/dashboard.css */
+
+.dashboard-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw; /* Ensure full viewport width */
+  overflow: hidden; /* Prevent body scroll */
+}
+
+.sidebar {
+  width: 260px;
+  background-color: #1e293b;
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  
+  /* CRITICAL FIX: Prevent sidebar from shrinking when table is wide */
+  flex-shrink: 0; 
+  border-right: 1px solid #334155;
+  transition: width 0.2s ease;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-surface);
+  
+  /* CRITICAL FIX: Allows this flex child to shrink below content size 
+     so internal scrollbars work instead of expanding the window */
+  min-width: 0; 
+  height: 100%;
+}
+
+.top-nav {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 1rem;
+  flex-shrink: 0; /* Nav shouldn't shrink */
+  background: white;
+}
+
+.workspace {
+  padding: 1.5rem;
+  flex: 1;
+  
+  /* Allow scrolling for vertical content (like forms), 
+     but ResultTable handles its own scrolling */
+  overflow-y: auto; 
+  overflow-x: hidden; /* Prevent double scrollbars */
+  
+  /* Flex settings to hold full-height children */
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Firefox fix for nested flex scrolling */
+}

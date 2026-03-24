@@ -1,0 +1,1162 @@
+{
+  "Tables": [
+    {
+      "Id": "public.film",
+      "TableName": "film",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.film.rental_duration",
+          "ColumnName": "rental_duration",
+          "DataType": "SMALLINT",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.film.length",
+          "ColumnName": "length",
+          "DataType": "SMALLINT",
+          "IsNullable": true
+        },
+        {
+          "Id": "public.film.fulltext",
+          "ColumnName": "fulltext",
+          "DataType": "TSVECTOR",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.film.description",
+          "ColumnName": "description",
+          "DataType": "TEXT",
+          "IsNullable": true
+        },
+        {
+          "Id": "public.film.film_id",
+          "ColumnName": "film_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.film.release_year",
+          "ColumnName": "release_year",
+          "DataType": "INTEGER",
+          "IsNullable": true
+        },
+        {
+          "Id": "public.film.original_language_id",
+          "ColumnName": "original_language_id",
+          "DataType": "INTEGER",
+          "IsNullable": true
+        },
+        {
+          "Id": "public.film.rental_rate",
+          "ColumnName": "rental_rate",
+          "DataType": "NUMERIC",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.film.language_id",
+          "ColumnName": "language_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.film.special_features",
+          "ColumnName": "special_features",
+          "DataType": "ARRAY",
+          "IsNullable": true
+        },
+        {
+          "Id": "public.film.title",
+          "ColumnName": "title",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.film.replacement_cost",
+          "ColumnName": "replacement_cost",
+          "DataType": "NUMERIC",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.film.last_update",
+          "ColumnName": "last_update",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.film.rating",
+          "ColumnName": "rating",
+          "DataType": "USER-DEFINED",
+          "IsNullable": true
+        }
+      ],
+      "Joins": [
+        {
+          "ChildTableId": "public.inventory",
+          "ParentColumnId": "public.film.film_id",
+          "ChildColumnId": "public.inventory.film_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.film_actor",
+          "ParentColumnId": "public.film.film_id",
+          "ChildColumnId": "public.film_actor.film_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.film_category",
+          "ParentColumnId": "public.film.film_id",
+          "ChildColumnId": "public.film_category.film_id",
+          "JoinType": "INNER"
+        }
+      ]
+    },
+    {
+      "Id": "public.actor",
+      "TableName": "actor",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.actor.last_update",
+          "ColumnName": "last_update",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.actor.actor_id",
+          "ColumnName": "actor_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.actor.last_name",
+          "ColumnName": "last_name",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.actor.first_name",
+          "ColumnName": "first_name",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": false
+        }
+      ],
+      "Joins": [
+        {
+          "ChildTableId": "public.film_actor",
+          "ParentColumnId": "public.actor.actor_id",
+          "ChildColumnId": "public.film_actor.actor_id",
+          "JoinType": "INNER"
+        }
+      ]
+    },
+    {
+      "Id": "public.address",
+      "TableName": "address",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.address.city_id",
+          "ColumnName": "city_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.address.address",
+          "ColumnName": "address",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.address.address2",
+          "ColumnName": "address2",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": true
+        },
+        {
+          "Id": "public.address.phone",
+          "ColumnName": "phone",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.address.district",
+          "ColumnName": "district",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.address.address_id",
+          "ColumnName": "address_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.address.postal_code",
+          "ColumnName": "postal_code",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": true
+        },
+        {
+          "Id": "public.address.last_update",
+          "ColumnName": "last_update",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        }
+      ],
+      "Joins": [
+        {
+          "ChildTableId": "public.customer",
+          "ParentColumnId": "public.address.address_id",
+          "ChildColumnId": "public.customer.address_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.staff",
+          "ParentColumnId": "public.address.address_id",
+          "ChildColumnId": "public.staff.address_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.store",
+          "ParentColumnId": "public.address.address_id",
+          "ChildColumnId": "public.store.address_id",
+          "JoinType": "INNER"
+        }
+      ]
+    },
+    {
+      "Id": "public.category",
+      "TableName": "category",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.category.category_id",
+          "ColumnName": "category_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.category.last_update",
+          "ColumnName": "last_update",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.category.name",
+          "ColumnName": "name",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": false
+        }
+      ],
+      "Joins": [
+        {
+          "ChildTableId": "public.film_category",
+          "ParentColumnId": "public.category.category_id",
+          "ChildColumnId": "public.film_category.category_id",
+          "JoinType": "INNER"
+        }
+      ]
+    },
+    {
+      "Id": "public.city",
+      "TableName": "city",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.city.city",
+          "ColumnName": "city",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.city.country_id",
+          "ColumnName": "country_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.city.city_id",
+          "ColumnName": "city_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.city.last_update",
+          "ColumnName": "last_update",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        }
+      ],
+      "Joins": [
+        {
+          "ChildTableId": "public.address",
+          "ParentColumnId": "public.city.city_id",
+          "ChildColumnId": "public.address.city_id",
+          "JoinType": "INNER"
+        }
+      ]
+    },
+    {
+      "Id": "public.country",
+      "TableName": "country",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.country.country",
+          "ColumnName": "country",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.country.country_id",
+          "ColumnName": "country_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.country.last_update",
+          "ColumnName": "last_update",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        }
+      ],
+      "Joins": [
+        {
+          "ChildTableId": "public.city",
+          "ParentColumnId": "public.country.country_id",
+          "ChildColumnId": "public.city.country_id",
+          "JoinType": "INNER"
+        }
+      ]
+    },
+    {
+      "Id": "public.customer",
+      "TableName": "customer",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.customer.last_name",
+          "ColumnName": "last_name",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.customer.customer_id",
+          "ColumnName": "customer_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.customer.first_name",
+          "ColumnName": "first_name",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.customer.last_update",
+          "ColumnName": "last_update",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": true
+        },
+        {
+          "Id": "public.customer.activebool",
+          "ColumnName": "activebool",
+          "DataType": "BOOLEAN",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.customer.create_date",
+          "ColumnName": "create_date",
+          "DataType": "DATE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.customer.address_id",
+          "ColumnName": "address_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.customer.email",
+          "ColumnName": "email",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": true
+        },
+        {
+          "Id": "public.customer.active",
+          "ColumnName": "active",
+          "DataType": "INTEGER",
+          "IsNullable": true
+        },
+        {
+          "Id": "public.customer.store_id",
+          "ColumnName": "store_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        }
+      ],
+      "Joins": [
+        {
+          "ChildTableId": "public.payment",
+          "ParentColumnId": "public.customer.customer_id",
+          "ChildColumnId": "public.payment.customer_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_01",
+          "ParentColumnId": "public.customer.customer_id",
+          "ChildColumnId": "public.payment_p2007_01.customer_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_02",
+          "ParentColumnId": "public.customer.customer_id",
+          "ChildColumnId": "public.payment_p2007_02.customer_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_03",
+          "ParentColumnId": "public.customer.customer_id",
+          "ChildColumnId": "public.payment_p2007_03.customer_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_04",
+          "ParentColumnId": "public.customer.customer_id",
+          "ChildColumnId": "public.payment_p2007_04.customer_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_05",
+          "ParentColumnId": "public.customer.customer_id",
+          "ChildColumnId": "public.payment_p2007_05.customer_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_06",
+          "ParentColumnId": "public.customer.customer_id",
+          "ChildColumnId": "public.payment_p2007_06.customer_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.rental",
+          "ParentColumnId": "public.customer.customer_id",
+          "ChildColumnId": "public.rental.customer_id",
+          "JoinType": "INNER"
+        }
+      ]
+    },
+    {
+      "Id": "public.film_actor",
+      "TableName": "film_actor",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.film_actor.film_id",
+          "ColumnName": "film_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.film_actor.last_update",
+          "ColumnName": "last_update",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.film_actor.actor_id",
+          "ColumnName": "actor_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        }
+      ],
+      "Joins": []
+    },
+    {
+      "Id": "public.film_category",
+      "TableName": "film_category",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.film_category.film_id",
+          "ColumnName": "film_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.film_category.last_update",
+          "ColumnName": "last_update",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.film_category.category_id",
+          "ColumnName": "category_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        }
+      ],
+      "Joins": []
+    },
+    {
+      "Id": "public.inventory",
+      "TableName": "inventory",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.inventory.store_id",
+          "ColumnName": "store_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.inventory.inventory_id",
+          "ColumnName": "inventory_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.inventory.last_update",
+          "ColumnName": "last_update",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.inventory.film_id",
+          "ColumnName": "film_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        }
+      ],
+      "Joins": [
+        {
+          "ChildTableId": "public.rental",
+          "ParentColumnId": "public.inventory.inventory_id",
+          "ChildColumnId": "public.rental.inventory_id",
+          "JoinType": "INNER"
+        }
+      ]
+    },
+    {
+      "Id": "public.language",
+      "TableName": "language",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.language.last_update",
+          "ColumnName": "last_update",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.language.language_id",
+          "ColumnName": "language_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.language.name",
+          "ColumnName": "name",
+          "DataType": "CHARACTER",
+          "IsNullable": false
+        }
+      ],
+      "Joins": [
+        {
+          "ChildTableId": "public.film",
+          "ParentColumnId": "public.language.language_id",
+          "ChildColumnId": "public.film.original_language_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.film",
+          "ParentColumnId": "public.language.language_id",
+          "ChildColumnId": "public.film.language_id",
+          "JoinType": "INNER"
+        }
+      ]
+    },
+    {
+      "Id": "public.rental",
+      "TableName": "rental",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.rental.return_date",
+          "ColumnName": "return_date",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": true
+        },
+        {
+          "Id": "public.rental.rental_date",
+          "ColumnName": "rental_date",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.rental.inventory_id",
+          "ColumnName": "inventory_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.rental.last_update",
+          "ColumnName": "last_update",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.rental.customer_id",
+          "ColumnName": "customer_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.rental.rental_id",
+          "ColumnName": "rental_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.rental.staff_id",
+          "ColumnName": "staff_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        }
+      ],
+      "Joins": [
+        {
+          "ChildTableId": "public.payment_p2007_01",
+          "ParentColumnId": "public.rental.rental_id",
+          "ChildColumnId": "public.payment_p2007_01.rental_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_02",
+          "ParentColumnId": "public.rental.rental_id",
+          "ChildColumnId": "public.payment_p2007_02.rental_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_03",
+          "ParentColumnId": "public.rental.rental_id",
+          "ChildColumnId": "public.payment_p2007_03.rental_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_04",
+          "ParentColumnId": "public.rental.rental_id",
+          "ChildColumnId": "public.payment_p2007_04.rental_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_05",
+          "ParentColumnId": "public.rental.rental_id",
+          "ChildColumnId": "public.payment_p2007_05.rental_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_06",
+          "ParentColumnId": "public.rental.rental_id",
+          "ChildColumnId": "public.payment_p2007_06.rental_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment",
+          "ParentColumnId": "public.rental.rental_id",
+          "ChildColumnId": "public.payment.rental_id",
+          "JoinType": "INNER"
+        }
+      ]
+    },
+    {
+      "Id": "public.staff",
+      "TableName": "staff",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.staff.address_id",
+          "ColumnName": "address_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.staff.staff_id",
+          "ColumnName": "staff_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.staff.last_name",
+          "ColumnName": "last_name",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.staff.active",
+          "ColumnName": "active",
+          "DataType": "BOOLEAN",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.staff.password",
+          "ColumnName": "password",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": true
+        },
+        {
+          "Id": "public.staff.username",
+          "ColumnName": "username",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.staff.store_id",
+          "ColumnName": "store_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.staff.email",
+          "ColumnName": "email",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": true
+        },
+        {
+          "Id": "public.staff.picture",
+          "ColumnName": "picture",
+          "DataType": "BYTEA",
+          "IsNullable": true
+        },
+        {
+          "Id": "public.staff.first_name",
+          "ColumnName": "first_name",
+          "DataType": "CHARACTER VARYING",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.staff.last_update",
+          "ColumnName": "last_update",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        }
+      ],
+      "Joins": [
+        {
+          "ChildTableId": "public.payment_p2007_01",
+          "ParentColumnId": "public.staff.staff_id",
+          "ChildColumnId": "public.payment_p2007_01.staff_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_02",
+          "ParentColumnId": "public.staff.staff_id",
+          "ChildColumnId": "public.payment_p2007_02.staff_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_03",
+          "ParentColumnId": "public.staff.staff_id",
+          "ChildColumnId": "public.payment_p2007_03.staff_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_04",
+          "ParentColumnId": "public.staff.staff_id",
+          "ChildColumnId": "public.payment_p2007_04.staff_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_05",
+          "ParentColumnId": "public.staff.staff_id",
+          "ChildColumnId": "public.payment_p2007_05.staff_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment_p2007_06",
+          "ParentColumnId": "public.staff.staff_id",
+          "ChildColumnId": "public.payment_p2007_06.staff_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.payment",
+          "ParentColumnId": "public.staff.staff_id",
+          "ChildColumnId": "public.payment.staff_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.rental",
+          "ParentColumnId": "public.staff.staff_id",
+          "ChildColumnId": "public.rental.staff_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.store",
+          "ParentColumnId": "public.staff.staff_id",
+          "ChildColumnId": "public.store.manager_staff_id",
+          "JoinType": "INNER"
+        }
+      ]
+    },
+    {
+      "Id": "public.store",
+      "TableName": "store",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.store.store_id",
+          "ColumnName": "store_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.store.last_update",
+          "ColumnName": "last_update",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.store.address_id",
+          "ColumnName": "address_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.store.manager_staff_id",
+          "ColumnName": "manager_staff_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        }
+      ],
+      "Joins": [
+        {
+          "ChildTableId": "public.customer",
+          "ParentColumnId": "public.store.store_id",
+          "ChildColumnId": "public.customer.store_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.inventory",
+          "ParentColumnId": "public.store.store_id",
+          "ChildColumnId": "public.inventory.store_id",
+          "JoinType": "INNER"
+        },
+        {
+          "ChildTableId": "public.staff",
+          "ParentColumnId": "public.store.store_id",
+          "ChildColumnId": "public.staff.store_id",
+          "JoinType": "INNER"
+        }
+      ]
+    },
+    {
+      "Id": "public.payment",
+      "TableName": "payment",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.payment.amount",
+          "ColumnName": "amount",
+          "DataType": "NUMERIC",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment.customer_id",
+          "ColumnName": "customer_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment.rental_id",
+          "ColumnName": "rental_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment.payment_id",
+          "ColumnName": "payment_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment.staff_id",
+          "ColumnName": "staff_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment.payment_date",
+          "ColumnName": "payment_date",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        }
+      ],
+      "Joins": []
+    },
+    {
+      "Id": "public.payment_p2007_01",
+      "TableName": "payment_p2007_01",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.payment_p2007_01.payment_id",
+          "ColumnName": "payment_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_01.rental_id",
+          "ColumnName": "rental_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_01.staff_id",
+          "ColumnName": "staff_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_01.payment_date",
+          "ColumnName": "payment_date",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_01.amount",
+          "ColumnName": "amount",
+          "DataType": "NUMERIC",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_01.customer_id",
+          "ColumnName": "customer_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        }
+      ],
+      "Joins": []
+    },
+    {
+      "Id": "public.payment_p2007_02",
+      "TableName": "payment_p2007_02",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.payment_p2007_02.rental_id",
+          "ColumnName": "rental_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_02.payment_id",
+          "ColumnName": "payment_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_02.staff_id",
+          "ColumnName": "staff_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_02.payment_date",
+          "ColumnName": "payment_date",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_02.amount",
+          "ColumnName": "amount",
+          "DataType": "NUMERIC",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_02.customer_id",
+          "ColumnName": "customer_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        }
+      ],
+      "Joins": []
+    },
+    {
+      "Id": "public.payment_p2007_03",
+      "TableName": "payment_p2007_03",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.payment_p2007_03.amount",
+          "ColumnName": "amount",
+          "DataType": "NUMERIC",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_03.customer_id",
+          "ColumnName": "customer_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_03.rental_id",
+          "ColumnName": "rental_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_03.payment_id",
+          "ColumnName": "payment_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_03.staff_id",
+          "ColumnName": "staff_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_03.payment_date",
+          "ColumnName": "payment_date",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        }
+      ],
+      "Joins": []
+    },
+    {
+      "Id": "public.payment_p2007_04",
+      "TableName": "payment_p2007_04",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.payment_p2007_04.customer_id",
+          "ColumnName": "customer_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_04.amount",
+          "ColumnName": "amount",
+          "DataType": "NUMERIC",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_04.payment_date",
+          "ColumnName": "payment_date",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_04.staff_id",
+          "ColumnName": "staff_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_04.rental_id",
+          "ColumnName": "rental_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_04.payment_id",
+          "ColumnName": "payment_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        }
+      ],
+      "Joins": []
+    },
+    {
+      "Id": "public.payment_p2007_05",
+      "TableName": "payment_p2007_05",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.payment_p2007_05.staff_id",
+          "ColumnName": "staff_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_05.payment_id",
+          "ColumnName": "payment_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_05.rental_id",
+          "ColumnName": "rental_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_05.payment_date",
+          "ColumnName": "payment_date",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_05.amount",
+          "ColumnName": "amount",
+          "DataType": "NUMERIC",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_05.customer_id",
+          "ColumnName": "customer_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        }
+      ],
+      "Joins": []
+    },
+    {
+      "Id": "public.payment_p2007_06",
+      "TableName": "payment_p2007_06",
+      "Schema": "public",
+      "Columns": [
+        {
+          "Id": "public.payment_p2007_06.amount",
+          "ColumnName": "amount",
+          "DataType": "NUMERIC",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_06.customer_id",
+          "ColumnName": "customer_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_06.rental_id",
+          "ColumnName": "rental_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_06.payment_id",
+          "ColumnName": "payment_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_06.staff_id",
+          "ColumnName": "staff_id",
+          "DataType": "INTEGER",
+          "IsNullable": false
+        },
+        {
+          "Id": "public.payment_p2007_06.payment_date",
+          "ColumnName": "payment_date",
+          "DataType": "TIMESTAMP WITHOUT TIME ZONE",
+          "IsNullable": false
+        }
+      ],
+      "Joins": []
+    }
+  ]
+}

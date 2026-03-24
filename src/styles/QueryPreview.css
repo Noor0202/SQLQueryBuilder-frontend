@@ -1,0 +1,110 @@
+/* frontend/src/styles/QueryPreview.css */
+
+.query-preview-container {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  /* Matched shadow with Query Builder */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  /* Flex 1 allows it to fill the workspace, min-height exactly matches Query Builder */
+  flex: 1; 
+  min-height: 400px; 
+  overflow: hidden;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem; /* Matched padding with Query Builder header */
+  background: #f8fafc;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.preview-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+  font-size: 1.125rem; /* Matched Query Builder h3 font-size */
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.btn-copy {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  padding: 0.5rem 1rem; /* Matched .btn-sm sizing from Query Builder */
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.btn-copy:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: #f0f9ff;
+  transform: translateY(-1px);
+}
+
+/* Code Area */
+.code-block {
+  background: #1e293b; /* Slate-800 */
+  padding: 1.5rem;
+  overflow: auto; /* Enable Scrollbars for long queries */
+  flex: 1; /* Fill remaining vertical space */
+  display: flex;
+}
+
+.code-block pre {
+  margin: 0;
+  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+  width: 100%;
+}
+
+.sql-code {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #f1f5f9; /* Slate-100 */
+  display: block;
+}
+
+/* Custom Scrollbars for the code block */
+.code-block::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.code-block::-webkit-scrollbar-track {
+  background: #0f172a; 
+}
+.code-block::-webkit-scrollbar-thumb {
+  background: #475569; 
+  border-radius: 5px;
+}
+.code-block::-webkit-scrollbar-thumb:hover {
+  background: #64748b; 
+}
+
+.preview-info {
+  padding: 0.75rem 1.5rem;
+  background: #fff;
+  color: #64748b;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
