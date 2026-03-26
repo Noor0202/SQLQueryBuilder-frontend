@@ -6,33 +6,48 @@ import { useSchemaConfig } from '../config/SchemaConfig';
 import '../styles/HistoryPanel.css';
 
 const QUERY_FEATURES = [
-  // --- The 5 Requested Features ---
-  { id: 'select', label: 'SELECT', default: true },
-  { id: 'where', label: 'WHERE Clause', default: true },
-  { id: 'dragDrop', label: 'Drag-and-Drop' },
-  { id: 'inner_join', label: 'INNER JOIN (Only matching)' },
-  { id: 'left_join', label: 'LEFT JOIN (All left + matching)' },
-  { id: 'right_join', label: 'RIGHT JOIN (All right + matching)' },
-  { id: 'full_join', label: 'FULL JOIN (Everything)' },
-  { id: 'cross_join', label: 'CROSS JOIN (Every combination)' },
-  { id: 'self_join', label: 'SELF JOIN (Same table joined)' },
-  { id: 'select_column', label: 'Select Column' },
-  { id: 'subquery', label: 'Subqueries' },
-  { id: 'distinct', label: 'DISTINCT' },
-  { id: 'orderBy', label: 'ORDER BY' },
-  { id: 'limit', label: 'LIMIT / OFFSET' },
-  { id: 'groupBy', label: 'GROUP BY' },
-  { id: 'having', label: 'HAVING Clause' },
-  { id: 'aggregates', label: 'Aggregates (SUM, COUNT, etc.)' },
-  { id: 'window', label: 'Window Functions (OVER, PARTITION)' },
-  { id: 'case', label: 'CASE Statements' },
-  { id: 'cte', label: 'CTE (WITH Clause)' },
-  { id: 'unions', label: 'UNIONS (ALL)' },
+
+  // ===== DEFAULT CORE FEATURES (Always at top) =====
+  { id: 'select', label: 'Select Data', default: true },
+  { id: 'where', label: 'Filter Data (WHERE)', default: true },
+
+
+  // ===== UI-BASED FEATURES (Open new UI sections) =====
+  { id: 'select_column', label: 'Column Selector' },
+  { id: 'dragDrop', label: 'Drag & Drop Query Builder' },
+  { id: 'subquery', label: 'Subquery Builder' },
+  { id: 'aggregates', label: 'Aggregation Panel (SUM, COUNT, AVG, etc.)' },
+
+
+  // ===== HIGH PRIORITY / MOST USED FEATURES =====
+  { id: 'distinct', label: 'Remove Duplicates (DISTINCT)' },
+  { id: 'orderBy', label: 'Sort Results (ORDER BY)' },
+  { id: 'limit', label: 'Limit Results (LIMIT / OFFSET)' },
+  { id: 'groupBy', label: 'Group Data (GROUP BY)' },
+  { id: 'having', label: 'Filter Groups (HAVING)' },
+
+  // ===== ALL JOIN FEATURES (MUST STAY TOGETHER) =====
+  { id: 'inner_join', label: 'INNER JOIN (Matching Records)' },
+  { id: 'left_join', label: 'LEFT JOIN (All Left + Matching)' },
+  { id: 'right_join', label: 'RIGHT JOIN (All Right + Matching)' },
+  { id: 'full_join', label: 'FULL JOIN (All Records)' },
+  { id: 'cross_join', label: 'CROSS JOIN (All Combinations)' },
+  { id: 'self_join', label: 'SELF JOIN (Same Table Join)' },
+
+  // ===== MEDIUM PRIORITY FEATURES =====
   { id: 'functions', label: 'Database Functions' },
+  { id: 'case', label: 'Conditional Logic (CASE Statements)' },
+  { id: 'independentLogic', label: 'Advanced Rule Logic' },
+
+
+  // ===== ADVANCED / POWER USER FEATURES =====
+  { id: 'cte', label: 'CTE (WITH Clause)' },
+  { id: 'unions', label: 'Combine Queries (UNION / UNION ALL)' },
+  { id: 'window', label: 'Window Functions (OVER / PARTITION)' },
   { id: 'procedures', label: 'Stored Procedures' },
 
-  // --- Other UI Features ---
-  { id: 'independentLogic', label: 'Independent Combinators' },
+
+
 ];
 
 // ... [keep imports and QUERY_FEATURES exactly the same] ...

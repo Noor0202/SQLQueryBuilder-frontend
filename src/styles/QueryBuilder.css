@@ -2,13 +2,18 @@
 
 /* --- Container --- */
 .query-builder {
-  background: var(--color-surface); /* Clean white background */
+  background: var(--color-surface);
   border-radius: var(--radius-md);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   padding: 1.5rem;
   border: 1px solid var(--color-border);
   min-height: 400px;
   position: relative;
+  
+  /* Layout locks to prevent breaking the dashboard */
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .qb-header {
@@ -28,9 +33,33 @@
   letter-spacing: -0.01em;
 }
 
+/* --- NEW: Scroll Container for Rules --- */
+.rules-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 8px; /* Breathing room for the scrollbar */
+  border-radius: var(--radius-md);
+}
+
+.rules-scroll-container::-webkit-scrollbar {
+  height: 8px;
+}
+.rules-scroll-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.rules-scroll-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.rules-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 /* --- Rule Group (Recursive Container) --- */
 .rule-group {
-  background-color: #f8fafc; /* Light Slate background to distinguish from main container */
+  background-color: #f8fafc;
   border: 1px solid #cbd5e1;
   border-radius: var(--radius-md);
   padding: 1.25rem;
@@ -41,21 +70,20 @@
 
 /* Nested Group Styling */
 .rule-group .rule-group {
-  margin-left: 2rem; /* Indentation */
-  background-color: #ffffff; /* White background for contrast against parent group */
-  border-left: 4px solid var(--color-primary); /* Strong visual hierarchy indicator */
+  margin-left: 2rem;
+  background-color: #ffffff;
+  border-left: 4px solid var(--color-primary);
   border-color: #e2e8f0;
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .rule-group:hover {
-  border-color: #94a3b8; /* Subtle highlight on hover */
+  border-color: #94a3b8;
 }
 
 /* --- Rule Row (The inputs) --- */
 .rule-item {
   display: grid;
-  /* Grid Layout: Table | Column | Operator | Value | Actions */
   grid-template-columns: 1.5fr 1.5fr 1.25fr 1.5fr auto; 
   gap: 0.75rem;
   align-items: center;
@@ -68,6 +96,9 @@
   
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   transition: border-color 0.2s, box-shadow 0.2s;
+  
+  /* Forces horizontal scroll instead of squishing and breaking */
+  min-width: 750px; 
 }
 
 .rule-item:hover {
@@ -81,20 +112,16 @@
 .rule-item input {
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #cbd5e1; /* Visible Border */
+  border: 1px solid #cbd5e1;
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
-  
-  /* IMPROVED VISIBILITY */
-  color: #334155; /* Darker Slate Text */
-  background-color: #f8fafc; /* Slight off-white to stand out from white row */
-  
+  color: #334155;
+  background-color: #f8fafc;
   transition: all 0.2s;
   cursor: pointer;
 }
 
-/* Focus States */
 .rule-item select:focus,
 .rule-item input:focus {
   outline: none;
@@ -114,18 +141,16 @@
 }
 
 /* --- Action Buttons (Up/Down/Delete) --- */
-/* Targeting the specific div that holds the buttons */
 .rule-item > div:last-child,
 .rule-group .rules-list > div > div:last-child {
   display: flex;
   gap: 0.25rem;
-  background: #f1f5f9; /* Group background */
+  background: #f1f5f9;
   padding: 4px;
   border-radius: 6px;
   border: 1px solid #e2e8f0;
 }
 
-/* Style the buttons inside the action group */
 .rule-item button,
 .rule-group button.btn-remove,
 .rule-group button[title="Move Sub-Group Up"],
@@ -140,14 +165,11 @@
   transition: all 0.15s ease;
   font-size: 1rem;
   line-height: 1;
-  
-  /* DEFAULT VISIBILITY */
   background-color: #ffffff;
   border: 1px solid #cbd5e1;
-  color: #475569; /* Visible Dark Grey Icon */
+  color: #475569;
 }
 
-/* Hover States for Action Buttons */
 .rule-item button:hover:not(:disabled),
 .rule-group button:hover:not(:disabled) {
   background-color: #e2e8f0;
@@ -155,7 +177,6 @@
   border-color: #94a3b8;
 }
 
-/* Disabled State for Arrows */
 .rule-item button:disabled,
 .rule-group button:disabled {
   background-color: #f8fafc;
@@ -165,10 +186,9 @@
   opacity: 0.6;
 }
 
-/* Specific Delete Button Style */
 .rule-item button.btn-remove,
 .rule-group button.btn-remove {
-  color: #ef4444; /* Red Icon */
+  color: #ef4444;
   border-color: #fecaca;
   background-color: #fff1f2;
 }
@@ -179,7 +199,6 @@
   border-color: #ef4444;
   color: #b91c1c;
 }
-
 
 /* --- Main Add Buttons (Footer) --- */
 .btn-sm {
@@ -225,31 +244,29 @@
   align-items: center;
   justify-content: flex-start;
   position: relative;
-  height: 24px; /* Tighter height */
+  height: 24px;
   margin-left: 1.5rem;
   margin-bottom: 0.5rem;
   margin-top: 0.5rem;
 }
 
-/* The vertical line */
 .logic-separator::before {
   content: '';
   position: absolute;
   left: 24px;
   top: -14px;
   bottom: -14px;
-  border-left: 2px solid #cbd5e1; /* Solid line for better visibility */
+  border-left: 2px solid #cbd5e1;
   z-index: 0;
 }
 
-/* The Clickable Badge */
 .logic-badge {
   position: relative;
   z-index: 1;
   background: white;
   color: #64748b;
   border: 1px solid #cbd5e1;
-  border-radius: 4px; /* Square off slightly */
+  border-radius: 4px;
   padding: 2px 10px;
   font-size: 0.7rem;
   font-weight: 700;
@@ -278,12 +295,12 @@
 /* --- Responsive Adjustments --- */
 @media (max-width: 900px) {
   .rule-item {
-    grid-template-columns: 1fr; /* Stack vertically on small screens */
+    grid-template-columns: 1fr;
     gap: 0.5rem;
     padding: 1rem;
+    min-width: unset; /* Allow stacking on true mobile devices */
   }
   
-  /* Buttons align right on mobile */
   .rule-item > div:last-child {
     justify-content: flex-end;
     background: transparent;

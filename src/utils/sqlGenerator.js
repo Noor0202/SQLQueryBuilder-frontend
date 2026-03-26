@@ -261,12 +261,60 @@ export const generatePostgresQuery = (query, schemaConfig, options = {}) => {
 
   const { sql: fromClause, aliasMap } = generateFromClause(uniqueTables, schemaConfig, options);
 
-  const selectColumns = Object.values(aliasMap).map(a => `${a}.*`).join(', ');
+  // --- NEW: Process Dynamic Selected Columns ---
+  let selectColumns = '';
 
-  // --- NEW: Check for distinct option ---
+  if (options.select_column) {
+    const colFragments = [];
+    const usedColumns = {};
+
+    // 1. Find Auto-Selected Columns (if toggle is ON)
+    if (query.autoSelectUsedColumns) {
+      const traverse = (g) => {
+        if (!g || !g.rules) return;
+        g.rules.forEach(r => {
+          if (r.type === 'group') traverse(r);
+          else if (r.table && r.column) {
+            if (!usedColumns[r.table]) usedColumns[r.table] = new Set();
+            usedColumns[r.table].add(r.column);
+          }
+        });
+      };
+      traverse(query);
+    }
+
+    // 2. Combine manual selections and auto selections
+    Object.keys(aliasMap).forEach(tableId => {
+      const alias = aliasMap[tableId];
+      const manualCols = query.selectedColumns?.[tableId] || [];
+      const autoCols = usedColumns[tableId] ? Array.from(usedColumns[tableId]) : [];
+      
+      const combinedCols = Array.from(new Set([...manualCols, ...autoCols]));
+
+      if (combinedCols.length > 0) {
+        combinedCols.forEach(colId => {
+          const colName = getColumnNameOnly(colId);
+          colFragments.push(`${alias}.${colName}`);
+        });
+      }
+    });
+
+    // 3. Output logic
+    if (colFragments.length > 0) {
+      selectColumns = colFragments.join(', ');
+    } else {
+      // Fallback if no columns are selected at all
+      selectColumns = Object.values(aliasMap).map(a => `${a}.*`).join(', ');
+    }
+  } else {
+    // Default: If "Select Column" feature is turned off in the sidebar
+    selectColumns = Object.values(aliasMap).map(a => `${a}.*`).join(', ');
+  }
+
+  // --- Check for distinct option ---
   const distinctKeyword = options.distinct ? 'DISTINCT ' : '';
 
-  // --- NEW: Add the distinctKeyword right after SELECT ---
+  // --- Assemble final SELECT statement ---
   let finalSql = `SELECT ${distinctKeyword}${selectColumns}\n${fromClause}`;
 
   const whereSql = processGroup(query, aliasMap);
