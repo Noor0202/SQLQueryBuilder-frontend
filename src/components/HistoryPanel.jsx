@@ -10,7 +10,13 @@ const QUERY_FEATURES = [
   { id: 'select', label: 'SELECT', default: true },
   { id: 'where', label: 'WHERE Clause', default: true },
   { id: 'dragDrop', label: 'Drag-and-Drop' },
-  { id: 'join', label: 'JOINs (Inner/Outer)' },
+  { id: 'inner_join', label: 'INNER JOIN (Only matching)' },
+  { id: 'left_join', label: 'LEFT JOIN (All left + matching)' },
+  { id: 'right_join', label: 'RIGHT JOIN (All right + matching)' },
+  { id: 'full_join', label: 'FULL JOIN (Everything)' },
+  { id: 'cross_join', label: 'CROSS JOIN (Every combination)' },
+  { id: 'self_join', label: 'SELF JOIN (Same table joined)' },
+  { id: 'select_column', label: 'Select Column' },
   { id: 'subquery', label: 'Subqueries' },
   { id: 'distinct', label: 'DISTINCT' },
   { id: 'orderBy', label: 'ORDER BY' },
@@ -102,12 +108,20 @@ const HistoryPanel = ({ refreshTrigger, onSelect, onOptionsChange }) => {
     }
   };
 
-  // --- OPTION MANAGEMENT ---
+// --- UPDATE YOUR toggleOption FUNCTION TO THIS ---
   const toggleOption = (id) => {
-    const newOptions = { ...options, [id]: !options[id] };
-    setOptions(newOptions);
-    // CRITICAL FIX: Ensure we use the exact prop name passed by Dashboard.jsx
-    if (onOptionsChange) onOptionsChange(newOptions);
+    setOptions(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      
+      // Feature: Make all 6 Join selections mutually exclusive
+      const joinTypes = ['inner_join', 'left_join', 'right_join', 'full_join', 'cross_join', 'self_join'];
+      if (joinTypes.includes(id) && next[id]) {
+        joinTypes.forEach(j => { if (j !== id) next[j] = false; });
+      }
+      
+      if (onOptionsChange) onOptionsChange(next);
+      return next;
+    });
   };
 
   const selectAll = () => {

@@ -15,21 +15,24 @@ import { generatePostgresQuery } from '../utils/sqlGenerator';
 
 export default function Dashboard() {
   const { user } = useAuth();
-  
+
   // State Definitions
   const [activeTab, setActiveTab] = useState('Add Creds');
   const [refreshHistory, setRefreshHistory] = useState(0);
   const [queryOptions, setQueryOptions] = useState({});
   const { schemaConfig } = useSchemaConfig();
-  
+
   // Connection ID required for execution
   const [selectedConnId, setSelectedConnId] = useState(null);
 
   // --- QUERY STATE ---
+// --- FIND THIS FUNCTION AND UPDATE IT ---
   const createDefaultQuery = () => ({
     id: uuidv4(),
     type: 'group',
     combinator: 'and',
+    selectedColumns: {}, // Tracks currently selected columns { "tableId": ["col1", "col2"] }
+    keptColumns: {},     // Tracks permanently kept columns
     rules: [
       {
         id: uuidv4(),
@@ -44,7 +47,7 @@ export default function Dashboard() {
   });
 
   const [query, setQuery] = useState(createDefaultQuery());
-  
+
   // --- RESULT STATE ---
   const [resultData, setResultData] = useState([]); // Default to empty array
   const [paginationInfo, setPaginationInfo] = useState({ page: 1, total: 0, limit: 100 });
@@ -65,12 +68,12 @@ export default function Dashboard() {
     // HistoryPanel might pass the whole object OR just the ID depending on version.
     // We handle both cases to be safe.
     const id = typeof connOrId === 'object' ? connOrId.id : connOrId;
-    
+
     setSelectedConnId(id);
-    
+
     // REDIRECT LOGIC: Switch tab immediately
     setActiveTab('Query Builder');
-    
+
     // Optional: Reset query when switching DBs
     // setQuery(createDefaultQuery()); 
   };
@@ -78,8 +81,8 @@ export default function Dashboard() {
   // --- EXECUTION LOGIC ---
   const executeQueryCall = async (sqlToRun, pageNum = 1) => {
     if (!selectedConnId) {
-        alert("Connection ID missing. Please re-select the connection from the sidebar.");
-        return;
+      alert("Connection ID missing. Please re-select the connection from the sidebar.");
+      return;
     }
 
     setExecutionLoading(true);
@@ -92,7 +95,7 @@ export default function Dashboard() {
         page: pageNum,
         limit: 100
       });
-      
+
       // CRITICAL FIX: Extract 'rows' array from the response object
       // Backend returns: { rows: [...], total_rows: 1000, page: 1, limit: 100 }
       if (response.data && Array.isArray(response.data.rows)) {
@@ -103,8 +106,8 @@ export default function Dashboard() {
           limit: response.data.limit
         });
       } else {
-         // Fallback for non-paginated endpoints (just in case)
-         setResultData(Array.isArray(response.data) ? response.data : []);
+        // Fallback for non-paginated endpoints (just in case)
+        setResultData(Array.isArray(response.data) ? response.data : []);
       }
 
     } catch (err) {
@@ -122,11 +125,11 @@ export default function Dashboard() {
       alert("Please select a database connection first.");
       return;
     }
-    
+
     // FIX: Pass schemaConfig so JOINS are generated correctly
-    const sql = generatePostgresQuery(query, schemaConfig); 
+    const sql = generatePostgresQuery(query, schemaConfig, queryOptions);
     setLastExecutedSQL(sql);
-    
+
     // Reset to page 1
     executeQueryCall(sql, 1);
   };
@@ -140,7 +143,7 @@ export default function Dashboard() {
     <div className="dashboard-layout">
       <aside className="sidebar">
         <div style={{ paddingBottom: '1rem', borderBottom: '1px solid #334155', marginBottom: '1rem' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', fontSize:'1.1rem', fontWeight:'bold' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', fontWeight: 'bold' }}>
             <Icon name="Database" color="#3b82f6" />
             <span>SQL Builder</span>
           </div>
@@ -149,57 +152,67 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <HistoryPanel 
-           refreshTrigger={refreshHistory} 
-           onOptionsChange={setQueryOptions}
-           // We use the same handler name as your previous code to ensure compatibility
-           onSelect={handleSchemaLoaded} 
-           // Also mapping onSelectConnection just in case HistoryPanel uses that name now
-           onSelectConnection={handleSchemaLoaded}
+        <HistoryPanel
+          refreshTrigger={refreshHistory}
+          onOptionsChange={setQueryOptions}
+          // We use the same handler name as your previous code to ensure compatibility
+          onSelect={handleSchemaLoaded}
+          // Also mapping onSelectConnection just in case HistoryPanel uses that name now
+          onSelectConnection={handleSchemaLoaded}
         />
 
         <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #334155' }}>
-           <button onClick={handleLogout} className="btn btn-sm" style={{width:'100%', background:'#ef4444', color:'white'}}>Logout</button>
-         </div>
+          <button onClick={handleLogout} className="btn btn-sm" style={{ width: '100%', background: '#ef4444', color: 'white' }}>Logout</button>
+        </div>
       </aside>
 
       <main className="main-content">
         <TopNavTabs activeTab={activeTab} setActiveTab={setActiveTab} />
         <div className="workspace">
-           {activeTab === 'Add Creds' && (
-              <AddCreds onComplete={() => setRefreshHistory(n => n+1)} />
-           )}
-           
-           {activeTab === 'Query Builder' && (
-             schemaConfig ? (
-               <QueryBuilder 
-                 query={query} 
-                 setQuery={setQuery} 
-                 createDefaultQuery={createDefaultQuery}
-                 onRun={handleRunQuery}
-                 options={queryOptions}
-               />
-             ) : (
-               <div style={{color:'#64748b', padding: '2rem', textAlign: 'center'}}>
-                 Please select a database connection from the left sidebar.
-               </div>
-             )
-           )}
-           
-           {activeTab === 'Query Preview' && (
-             schemaConfig ? <QueryPreview query={query} schemaConfig={schemaConfig} /> : <div>Select a DB first.</div>
-           )}
-           
-           {activeTab === 'Result' && (
-             <ResultTable 
-               data={resultData} 
-               loading={executionLoading} 
-               error={executionError}
-               sql={lastExecutedSQL}
-               pagination={paginationInfo}
-               onPageChange={handlePageChange}
-             />
-           )}
+          {activeTab === 'Add Creds' && (
+            <AddCreds onComplete={() => setRefreshHistory(n => n + 1)} />
+          )}
+
+          {activeTab === 'Query Builder' && (
+            schemaConfig ? (
+              <QueryBuilder
+                query={query}
+                setQuery={setQuery}
+                createDefaultQuery={createDefaultQuery}
+                onRun={handleRunQuery}
+                options={queryOptions}
+                schemaConfig={schemaConfig}
+              />
+            ) : (
+              <div style={{ color: '#64748b', padding: '2rem', textAlign: 'center' }}>
+                Please select a database connection from the left sidebar.
+              </div>
+            )
+          )}
+
+          {/* Update this block in your workspace tabs */}
+          {activeTab === 'Query Preview' && (
+            schemaConfig ? (
+              <QueryPreview
+                query={query}
+                schemaConfig={schemaConfig}
+                options={queryOptions}
+              />
+            ) : (
+              <div>Select a DB first.</div>
+            )
+          )}
+
+          {activeTab === 'Result' && (
+            <ResultTable
+              data={resultData}
+              loading={executionLoading}
+              error={executionError}
+              sql={lastExecutedSQL}
+              pagination={paginationInfo}
+              onPageChange={handlePageChange}
+            />
+          )}
         </div>
       </main>
     </div>

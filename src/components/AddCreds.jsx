@@ -40,11 +40,6 @@ export default function AddCreds({ onComplete }) {
       await new Promise(r => setTimeout(r, 400)); // Visual delay
       setStep(4);
       
-      // The backend returns the connection info (and usually triggers metadata fetch internally)
-      // To be safe, we might need to fetch the metadata explicitly or have the save endpoint return it.
-      // *Optimization*: For now, let's assume we re-fetch the specific ID or the save endpoint
-      // was updated (as per your request, we can just fetch it after save).
-      
       const response = await api.post('/db-connections/save', formData);
       const newConnectionId = response.data.id;
       
@@ -57,6 +52,9 @@ export default function AddCreds({ onComplete }) {
          // Update the global configuration variable
          updateSchemaConfig(metaResponse.data.schema);
       }
+
+      // CRITICAL FIX: Advance step to 6 so step 5 (Saving Securely) turns into a green checkmark
+      setStep(6);
 
       // Success & Redirect
       setTimeout(() => {

@@ -4,13 +4,14 @@ import { generatePostgresQuery } from '../utils/sqlGenerator';
 import Icon from './Icon';
 import '../styles/QueryPreview.css';
 
-const QueryPreview = ({ query, schemaConfig }) => {
-  
-  // Re-generate SQL whenever the query object or schema changes
+// 1. Add options to the props
+const QueryPreview = ({ query, schemaConfig, options = {} }) => {
+
+  // 2. Add options to the dependency array
   const sqlString = useMemo(() => {
-    // CRITICAL FIX: Pass the full schemaConfig object, NOT a table name string.
-    return generatePostgresQuery(query, schemaConfig);
-  }, [query, schemaConfig]);
+    // 3. Pass options into the generator
+    return generatePostgresQuery(query, schemaConfig, options);
+  }, [query, schemaConfig, options]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(sqlString);

@@ -12,7 +12,7 @@ export default function RuleGroup({ ruleGroup, onUpdate, level = 0, options = {}
   const allowWhere = options.where !== false;
   const allowSubqueries = options.subquery !== false;
   const allowDragDrop = options.dragDrop === true;
-  const joinEnabled = options.join === true;
+const joinEnabled = options.inner_join || options.left_join || options.right_join || options.full_join || options.cross_join || options.self_join;
 
   // Gather ALL tables selected anywhere in this group and its subgroups (Order Independent)
   const getAllSelectedTables = (group) => {
