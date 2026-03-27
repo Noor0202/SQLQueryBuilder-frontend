@@ -4,44 +4,13 @@ import { v4 as uuidv4 } from 'uuid';
 import Rule from './Rule';
 import { useSchemaConfig } from '../../config/SchemaConfig';
 
-export default function RuleGroup({ ruleGroup, onUpdate, options = {}, ancestorTables = [], isRoot = false, level = 0 }) {
+export default function RuleGroup({ ruleGroup, onUpdate, options = {}, isRoot = false, availableTables = [] }) {
   const { schemaConfig } = useSchemaConfig();
   const allTables = schemaConfig?.Tables || [];
 
-  const allowWhere = options.where !== false;
   const allowSubqueries = options.subquery !== false;
-  const allowDragDrop = options.dragDrop === true;
-  const joinEnabled = options.inner_join || options.left_join || options.right_join || options.full_join || options.cross_join || options.self_join;
 
-  const getAllSelectedTables = (group) => {
-    let tables = [];
-    if (!group || !group.rules) return tables;
-    group.rules.forEach(r => {
-      if (r.type === 'rule' && r.table) tables.push(r.table);
-      if (r.type === 'group') tables = tables.concat(getAllSelectedTables(r));
-    });
-    return tables;
-  };
-
-  const currentGroupTables = getAllSelectedTables(ruleGroup);
-  const allKnownTables = [...new Set([...ancestorTables, ...currentGroupTables])];
-
-  const availableTablesList = (() => {
-    if (!allTables.length) return [];
-    if (!joinEnabled) {
-      if (allKnownTables.length === 0) return allTables;
-      return allTables.filter(t => t.Id === allKnownTables[0]);
-    }
-    if (allKnownTables.length === 0) return allTables;
-    const validTables = new Set(allKnownTables);
-    allKnownTables.forEach(selectedTableId => {
-      const tableDef = allTables.find(t => t.Id === selectedTableId);
-      if (tableDef && tableDef.Joins) {
-        tableDef.Joins.forEach(j => validTables.add(j.ChildTableId));
-      }
-    });
-    return allTables.filter(t => validTables.has(t.Id));
-  })();
+  const validTableDefs = allTables.filter(t => availableTables.includes(t.Id));
 
   const addRule = () => {
     onUpdate({ ...ruleGroup, rules: [...ruleGroup.rules, { 
@@ -69,87 +38,58 @@ export default function RuleGroup({ ruleGroup, onUpdate, options = {}, ancestorT
     onUpdate({ ...ruleGroup, rules: newRules });
   };
 
-  const moveChild = (index, direction) => {
-    if (direction === 'up' && index > 0) {
-      const newRules = [...ruleGroup.rules];
-      [newRules[index - 1], newRules[index]] = [newRules[index], newRules[index - 1]];
-      onUpdate({ ...ruleGroup, rules: newRules });
-    } else if (direction === 'down' && index < ruleGroup.rules.length - 1) {
-      const newRules = [...ruleGroup.rules];
-      [newRules[index + 1], newRules[index]] = [newRules[index], newRules[index + 1]];
-      onUpdate({ ...ruleGroup, rules: newRules });
-    }
-  };
-
-  const canAddMoreRules = allowWhere || joinEnabled || ruleGroup.rules.length === 0;
-
   return (
-    <div className={isRoot ? '' : 'tree-group'} data-level={level}>
-      {ruleGroup.rules.map((child, index) => {
-        const canMoveUp = index > 0;
-        const canMoveDown = index < ruleGroup.rules.length - 1;
-        const canDeleteChild = ruleGroup.rules.length > 1;
+    <div className="sql-clause">
+      {!isRoot && <div className="sql-paren">(</div>}
+      
+      <div className={!isRoot ? "sql-indent-2" : ""}>
+        {ruleGroup.rules.map((child, index) => {
+          return (
+            <div key={child.id} className="sql-row" style={{ alignItems: child.type === 'group' ? 'flex-start' : 'center' }}>
+              
+              {/* Inline AND/OR logic block */}
+              {index > 0 && (
+                <select 
+                  className="sql-input sql-logic-select" 
+                  value={child.condition || 'and'}
+                  onChange={(e) => updateChild(index, { ...child, condition: e.target.value })}
+                >
+                  <option value="and">AND</option>
+                  <option value="or">OR</option>
+                </select>
+              )}
+              {index === 0 && !isRoot && <div style={{width: '65px'}}></div>} {/* Spacer for alignment */}
 
-        return (
-          <div key={child.id} className={isRoot && index === 0 ? '' : 'tree-node'}>
-            
-            {child.type === 'group' ? (
-              <div className="rule-row-compact" style={{ alignItems: 'flex-start', padding: '12px 8px' }}>
-                <div className="logic-indicator">
-                  {index > 0 && (
-                    <select 
-                      className={`logic-pill ${child.condition === 'or' ? 'is-or' : ''}`}
-                      value={child.condition || 'and'}
-                      onChange={(e) => updateChild(index, { ...child, condition: e.target.value })}
-                    >
-                      <option value="and">AND</option>
-                      <option value="or">OR</option>
-                    </select>
-                  )}
-                </div>
-                
-                <div style={{ flex: 1 }}>
+              {/* Recursive Group or Standard Rule */}
+              {child.type === 'group' ? (
+                <div style={{ flex: 1, display: 'flex', gap: '8px' }}>
                   <RuleGroup 
                     ruleGroup={child} 
                     onUpdate={(u) => updateChild(index, u)} 
                     options={options}
-                    ancestorTables={allKnownTables}
-                    level={level + 1}
+                    availableTables={availableTables}
                   />
+                  <button className="btn-sql-remove" onClick={() => removeChild(index)}>✕</button>
                 </div>
+              ) : (
+                <Rule 
+                  rule={child}
+                  onUpdate={(u) => updateChild(index, u)} 
+                  onDelete={() => removeChild(index)}
+                  tables={validTableDefs.length > 0 ? validTableDefs : allTables} 
+                />
+              )}
+            </div>
+          );
+        })}
 
-                <div className="rule-actions">
-                  <button className="icon-btn danger" onClick={() => removeChild(index)} disabled={!canDeleteChild} title="Remove Sub-Group">✕</button>
-                </div>
-              </div>
-            ) : (
-              <Rule 
-                rule={child}
-                index={index}
-                isFirstInRoot={isRoot && index === 0}
-                onUpdate={(u) => updateChild(index, u)} 
-                onDelete={() => removeChild(index)}
-                onMoveUp={() => moveChild(index, 'up')}
-                onMoveDown={() => moveChild(index, 'down')}
-                canMoveUp={canMoveUp}
-                canMoveDown={canMoveDown}
-                canDelete={canDeleteChild}
-                options={options}
-                tables={availableTablesList} 
-              />
-            )}
-          </div>
-        );
-      })}
-
-      {canAddMoreRules && (
-        <div className="tree-actions" style={{ marginLeft: isRoot ? '0' : '88px' }}>
-          <button className="btn-add" onClick={addRule}>+ Add Rule</button>
-          {allowSubqueries && allowWhere && (
-            <button className="btn-add" onClick={addGroup}>+ Add Subgroup</button>
-          )}
+        <div className="sql-row" style={{ marginTop: '8px' }}>
+          <button className="btn-sql-action" onClick={addRule}>+ Condition</button>
+          {allowSubqueries && <button className="btn-sql-action" onClick={addGroup}>+ Nested (Group)</button>}
         </div>
-      )}
+      </div>
+
+      {!isRoot && <div className="sql-paren">)</div>}
     </div>
   );
 }
