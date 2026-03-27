@@ -3,9 +3,11 @@
 .history-panel {
   display: flex;
   flex-direction: column;
+  /* CRITICAL FIX: Forces the panel to stay inside the sidebar and never overlap the logout button */
+  flex: 1; 
+  min-height: 0; 
   height: 100%;
   color: #e2e8f0;
-  /* Critical Fix: Ensures the panel doesn't grow beyond the sidebar */
   overflow: hidden; 
   position: relative;
 }
@@ -16,30 +18,34 @@
   text-transform: uppercase;
   margin-bottom: 1rem;
   letter-spacing: 0.05em;
-  flex-shrink: 0; /* Prevent title from shrinking */
+  flex-shrink: 0;
 }
 
-/* --- SCROLLBAR THEME (Dark Mode) --- */
-/* Applies to both history list and options list */
+/* --- SCROLLBAR THEME (Dark, Sleek & Blended) --- */
+/* Firefox support */
+.history-list,
+.options-list {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+
+/* Chrome/Safari/Edge support */
 .history-list::-webkit-scrollbar,
 .options-list::-webkit-scrollbar {
-  width: 6px;
+  width: 4px; /* Very thin */
 }
-
 .history-list::-webkit-scrollbar-track,
 .options-list::-webkit-scrollbar-track {
-  background: transparent; 
+  background: transparent; /* Removes the white background */
 }
-
 .history-list::-webkit-scrollbar-thumb,
 .options-list::-webkit-scrollbar-thumb {
-  background-color: #475569; /* Slate-600 */
-  border-radius: 10px;
+  background-color: #334155; /* Blends perfectly with the dark theme */
+  border-radius: 4px;
 }
-
 .history-list::-webkit-scrollbar-thumb:hover,
 .options-list::-webkit-scrollbar-thumb:hover {
-  background-color: #64748b; /* Slate-500 */
+  background-color: #475569; /* Slightly lighter on hover */
 }
 
 /* --- LIST VIEW ITEMS --- */
@@ -48,7 +54,7 @@
   flex-direction: column;
   gap: 0.5rem;
   overflow-y: auto;
-  flex: 1; /* Take all remaining height */
+  flex: 1;
   padding-right: 4px;
 }
 
@@ -62,7 +68,7 @@
   cursor: pointer;
   border: 1px solid transparent;
   transition: all 0.2s;
-  flex-shrink: 0; /* Prevent items from squishing */
+  flex-shrink: 0;
 }
 
 .history-item:hover {
@@ -70,28 +76,10 @@
   background: #475569;
 }
 
-.history-icon {
-  margin-right: 10px;
-  color: #cbd5e1;
-}
-
-.history-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.history-name {
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 0.9rem;
-}
-
-.history-meta {
-  font-size: 0.75rem;
-  color: #94a3b8;
-}
+.history-icon { margin-right: 10px; color: #cbd5e1; }
+.history-info { flex: 1; min-width: 0; }
+.history-name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem; }
+.history-meta { font-size: 0.75rem; color: #94a3b8; }
 
 .btn-delete {
   background: transparent;
@@ -102,21 +90,16 @@
   padding: 4px;
   border-radius: 4px;
 }
-
-.history-item:hover .btn-delete {
-  opacity: 1;
-}
-
-.btn-delete:hover {
-  background: rgba(239, 68, 68, 0.1);
-}
+.history-item:hover .btn-delete { opacity: 1; }
+.btn-delete:hover { background: rgba(239, 68, 68, 0.1); }
 
 /* --- DETAIL VIEW --- */
 .detail-view {
   animation: slideInLeft 0.2s ease-out;
   display: flex;
   flex-direction: column;
-  height: 100%; /* Ensure it fills the parent */
+  flex: 1;
+  min-height: 0;
 }
 
 @keyframes slideInLeft {
@@ -129,7 +112,7 @@
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 1rem;
-  flex-shrink: 0; /* Don't shrink header */
+  flex-shrink: 0;
 }
 
 .btn-back {
@@ -147,24 +130,16 @@
 }
 .btn-back:hover { background: #475569; }
 
-.detail-label {
-  font-size: 0.7rem;
-  color: #94a3b8;
-  display: block;
-}
-.detail-name {
-  font-weight: bold;
-  font-size: 1rem;
-}
+.detail-label { font-size: 0.7rem; color: #94a3b8; display: block; }
+.detail-name { font-weight: bold; font-size: 1rem; }
 
-/* Connection Info Card */
 .conn-info-card {
   background: rgba(0,0,0,0.2);
   padding: 0.75rem;
   border-radius: 6px;
   margin-bottom: 1rem;
   border: 1px solid #334155;
-  flex-shrink: 0; /* Don't shrink card */
+  flex-shrink: 0;
 }
 
 .info-row {
@@ -184,7 +159,6 @@
   flex-shrink: 0;
 }
 
-/* Options Section */
 .options-header {
   display: flex;
   justify-content: space-between;
@@ -192,13 +166,7 @@
   margin-bottom: 0.5rem;
   flex-shrink: 0;
 }
-
-.options-header h4 {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #94a3b8;
-  text-transform: uppercase;
-}
+.options-header h4 { margin: 0; font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; }
 
 .btn-text {
   background: none;
@@ -210,52 +178,104 @@
 }
 .btn-text:hover { text-decoration: underline; }
 
-/* --- CRITICAL FIX FOR SCROLLING --- */
+/* --- ACCORDION GROUPS (MODERN UI) --- */
 .options-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  overflow-y: auto; /* Enable Scroll */
+  gap: 6px;
+  overflow-y: auto; /* Handles the scrolling */
   padding-right: 6px; 
-  flex: 1; /* Occupy all remaining vertical space */
-  min-height: 0; /* Crucial: Allows flex child to shrink below content size */
-  padding-bottom: 10px; /* Extra padding at bottom so last item isn't flush */
+  flex: 1; /* Pushes to fill space but respects min-height */
+  min-height: 0; /* CRITICAL: Allows it to scroll instead of pushing logout button */
+  padding-bottom: 10px;
 }
 
-/* Checkbox Rows */
+.feature-group {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #334155;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+  flex-shrink: 0; /* Prevents the groups themselves from shrinking */
+}
+
+.feature-group:hover {
+  border-color: #475569;
+}
+
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  cursor: pointer;
+  background: transparent;
+  transition: background 0.2s;
+  user-select: none;
+}
+
+.group-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.group-header.expanded {
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid #334155;
+}
+
+.group-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.group-chevron {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  transition: transform 0.3s ease;
+}
+
+.group-chevron.open {
+  transform: rotate(180deg);
+  color: var(--color-primary);
+}
+
+.group-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.group-content.open {
+  max-height: 800px; /* Large enough to fit the list */
+  padding: 6px 0;
+}
+
+/* Checkbox Rows (Inside Accordion) */
 .checkbox-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 8px;
-  border-radius: 4px;
+  padding: 6px 12px 6px 16px;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #cbd5e1;
-  transition: 0.1s;
-  flex-shrink: 0; /* Prevent items from collapsing */
+  transition: 0.15s;
 }
 
 .checkbox-row:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
 }
 
 .checkbox-row.active {
-  color: white;
-  background: rgba(255,255,255,0.02);
+  color: #60a5fa; 
+  background: rgba(59, 130, 246, 0.05);
 }
 
 .checkbox-row input[type="checkbox"] {
   accent-color: var(--color-primary);
   cursor: pointer;
-}
-
-.lock-icon {
-  margin-left: auto;
-  opacity: 0.5;
-}
-
-.mandatory {
-  font-weight: 600;
-  color: #94a3b8;
+  margin: 0;
 }

@@ -4,17 +4,15 @@ import { v4 as uuidv4 } from 'uuid';
 import Rule from './Rule';
 import { useSchemaConfig } from '../../config/SchemaConfig';
 
-export default function RuleGroup({ ruleGroup, onUpdate, level = 0, options = {}, ancestorTables = [] }) {
+export default function RuleGroup({ ruleGroup, onUpdate, options = {}, ancestorTables = [], isRoot = false, level = 0 }) {
   const { schemaConfig } = useSchemaConfig();
   const allTables = schemaConfig?.Tables || [];
 
-  const allowSelect = options.select !== false;
   const allowWhere = options.where !== false;
   const allowSubqueries = options.subquery !== false;
   const allowDragDrop = options.dragDrop === true;
-const joinEnabled = options.inner_join || options.left_join || options.right_join || options.full_join || options.cross_join || options.self_join;
+  const joinEnabled = options.inner_join || options.left_join || options.right_join || options.full_join || options.cross_join || options.self_join;
 
-  // Gather ALL tables selected anywhere in this group and its subgroups (Order Independent)
   const getAllSelectedTables = (group) => {
     let tables = [];
     if (!group || !group.rules) return tables;
@@ -30,62 +28,33 @@ const joinEnabled = options.inner_join || options.left_join || options.right_joi
 
   const availableTablesList = (() => {
     if (!allTables.length) return [];
-
     if (!joinEnabled) {
       if (allKnownTables.length === 0) return allTables;
       return allTables.filter(t => t.Id === allKnownTables[0]);
     }
-
     if (allKnownTables.length === 0) return allTables;
-
     const validTables = new Set(allKnownTables);
-    
     allKnownTables.forEach(selectedTableId => {
       const tableDef = allTables.find(t => t.Id === selectedTableId);
       if (tableDef && tableDef.Joins) {
         tableDef.Joins.forEach(j => validTables.add(j.ChildTableId));
       }
     });
-    
     return allTables.filter(t => validTables.has(t.Id));
   })();
 
   const addRule = () => {
-    // CRITICAL FIX: Inject a timestamp to lock in chronological order for the JOIN structure
-    const newRule = { 
-      id: uuidv4(), 
-      type: 'rule', 
-      table: '', 
-      column: '', 
-      operator: '', 
-      value: '', 
-      condition: 'and',
-      timestamp: Date.now() 
-    };
-    onUpdate({ ...ruleGroup, rules: [...ruleGroup.rules, newRule] });
+    onUpdate({ ...ruleGroup, rules: [...ruleGroup.rules, { 
+      id: uuidv4(), type: 'rule', table: '', column: '', operator: '', value: '', condition: 'and', timestamp: Date.now() 
+    }]});
   };
 
   const addGroup = () => {
     const now = Date.now();
-    const newGroup = { 
-      id: uuidv4(), 
-      type: 'group', 
-      condition: 'and', 
-      timestamp: now,
-      rules: [
-        { 
-          id: uuidv4(), 
-          type: 'rule', 
-          table: '', 
-          column: '', 
-          operator: '', 
-          value: '', 
-          condition: 'and',
-          timestamp: now + 1 
-        }
-      ] 
-    };
-    onUpdate({ ...ruleGroup, rules: [...ruleGroup.rules, newGroup] });
+    onUpdate({ ...ruleGroup, rules: [...ruleGroup.rules, { 
+      id: uuidv4(), type: 'group', condition: 'and', timestamp: now,
+      rules: [{ id: uuidv4(), type: 'rule', table: '', column: '', operator: '', value: '', condition: 'and', timestamp: now + 1 }] 
+    }]});
   };
 
   const updateChild = (index, updatedChild) => {
@@ -115,91 +84,69 @@ const joinEnabled = options.inner_join || options.left_join || options.right_joi
   const canAddMoreRules = allowWhere || joinEnabled || ruleGroup.rules.length === 0;
 
   return (
-    <div className="rule-group" style={{ marginLeft: level > 0 ? '2rem' : '0' }}>
-      
-      <div className="group-rules" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {ruleGroup.rules.map((child, index) => {
-          const canMoveUp = index > 0;
-          const canMoveDown = index < ruleGroup.rules.length - 1;
-          const canDeleteChild = ruleGroup.rules.length > 1;
+    <div className={isRoot ? '' : 'tree-group'} data-level={level}>
+      {ruleGroup.rules.map((child, index) => {
+        const canMoveUp = index > 0;
+        const canMoveDown = index < ruleGroup.rules.length - 1;
+        const canDeleteChild = ruleGroup.rules.length > 1;
 
-          return (
-            <React.Fragment key={child.id}>
-              {index > 0 && (allowWhere || joinEnabled) && (
-                <div className="logic-separator" style={{ display: 'flex', alignItems: 'center', margin: '0.5rem 0 0.5rem 1.5rem' }}>
-                  <select 
-                    className="logic-badge" 
-                    value={child.condition || 'and'}
-                    onChange={(e) => {
-                      const newRules = [...ruleGroup.rules];
-                      newRules[index] = { ...child, condition: e.target.value };
-                      onUpdate({ ...ruleGroup, rules: newRules });
-                    }}
-                    style={{ cursor: 'pointer', outline: 'none', background: 'white' }}
-                  >
-                    <option value="and">AND</option>
-                    <option value="or">OR</option>
-                  </select>
+        return (
+          <div key={child.id} className={isRoot && index === 0 ? '' : 'tree-node'}>
+            
+            {child.type === 'group' ? (
+              <div className="rule-row-compact" style={{ alignItems: 'flex-start', padding: '12px 8px' }}>
+                <div className="logic-indicator">
+                  {index > 0 && (
+                    <select 
+                      className={`logic-pill ${child.condition === 'or' ? 'is-or' : ''}`}
+                      value={child.condition || 'and'}
+                      onChange={(e) => updateChild(index, { ...child, condition: e.target.value })}
+                    >
+                      <option value="and">AND</option>
+                      <option value="or">OR</option>
+                    </select>
+                  )}
                 </div>
-              )}
-
-              {child.type === 'group' ? (
-                <div className="nested-group-wrapper" style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <RuleGroup 
-                      ruleGroup={child} 
-                      onUpdate={(u) => updateChild(index, u)} 
-                      level={level + 1}
-                      options={options}
-                      ancestorTables={allKnownTables}
-                    />
-                  </div>
-                  <div className="rule-actions" style={{ paddingTop: '0.5rem' }}>
-                    {allowDragDrop && (
-                      <>
-                        <button className="btn-move" onClick={() => moveChild(index, 'up')} disabled={!canMoveUp}>↑</button>
-                        <button className="btn-move" onClick={() => moveChild(index, 'down')} disabled={!canMoveDown}>↓</button>
-                      </>
-                    )}
-                    <button 
-                      className="btn-remove" 
-                      onClick={() => removeChild(index)}
-                      disabled={!canDeleteChild}
-                      title={canDeleteChild ? "Remove Group" : "Cannot delete the last item in this group"}
-                      style={{ 
-                        opacity: canDeleteChild ? 1 : 0.5, 
-                        cursor: canDeleteChild ? 'pointer' : 'not-allowed' 
-                      }}
-                    >✕</button>
-                  </div>
+                
+                <div style={{ flex: 1 }}>
+                  <RuleGroup 
+                    ruleGroup={child} 
+                    onUpdate={(u) => updateChild(index, u)} 
+                    options={options}
+                    ancestorTables={allKnownTables}
+                    level={level + 1}
+                  />
                 </div>
-              ) : (
-                <Rule 
-                  rule={child} 
-                  onUpdate={(u) => updateChild(index, u)} 
-                  onDelete={() => removeChild(index)}
-                  onMoveUp={() => moveChild(index, 'up')}
-                  onMoveDown={() => moveChild(index, 'down')}
-                  canMoveUp={canMoveUp}
-                  canMoveDown={canMoveDown}
-                  canDelete={canDeleteChild}
-                  options={options}
-                  tables={availableTablesList} 
-                />
-              )}
-            </React.Fragment>
-          );
-        })}
-      </div>
 
-      {canAddMoreRules && (allowSelect || allowWhere) && (
-        <div style={{ marginTop: '1rem', display: 'flex', gap: '10px' }}>
-          <button className="btn btn-sm btn-add-rule" onClick={addRule}>
-            {allowWhere ? '+ Rule' : '+ Table'}
-          </button>
-          
+                <div className="rule-actions">
+                  <button className="icon-btn danger" onClick={() => removeChild(index)} disabled={!canDeleteChild} title="Remove Sub-Group">✕</button>
+                </div>
+              </div>
+            ) : (
+              <Rule 
+                rule={child}
+                index={index}
+                isFirstInRoot={isRoot && index === 0}
+                onUpdate={(u) => updateChild(index, u)} 
+                onDelete={() => removeChild(index)}
+                onMoveUp={() => moveChild(index, 'up')}
+                onMoveDown={() => moveChild(index, 'down')}
+                canMoveUp={canMoveUp}
+                canMoveDown={canMoveDown}
+                canDelete={canDeleteChild}
+                options={options}
+                tables={availableTablesList} 
+              />
+            )}
+          </div>
+        );
+      })}
+
+      {canAddMoreRules && (
+        <div className="tree-actions" style={{ marginLeft: isRoot ? '0' : '88px' }}>
+          <button className="btn-add" onClick={addRule}>+ Add Rule</button>
           {allowSubqueries && allowWhere && (
-            <button className="btn btn-sm btn-add-group" onClick={addGroup}>+ Sub-Group</button>
+            <button className="btn-add" onClick={addGroup}>+ Add Subgroup</button>
           )}
         </div>
       )}

@@ -5,77 +5,91 @@ import api from '../services/api';
 import { useSchemaConfig } from '../config/SchemaConfig';
 import '../styles/HistoryPanel.css';
 
-const QUERY_FEATURES = [
-
-  // ===== DEFAULT CORE FEATURES (Always at top) =====
-  { id: 'select', label: 'Select Data', default: true },
-  { id: 'where', label: 'Filter Data (WHERE)', default: true },
-
-
-  // ===== UI-BASED FEATURES (Open new UI sections) =====
-  { id: 'select_column', label: 'Column Selector' },
-  { id: 'dragDrop', label: 'Drag & Drop Query Builder' },
-  { id: 'subquery', label: 'Subquery Builder' },
-  { id: 'aggregates', label: 'Aggregation Panel (SUM, COUNT, AVG, etc.)' },
-
-
-  // ===== HIGH PRIORITY / MOST USED FEATURES =====
-  { id: 'distinct', label: 'Remove Duplicates (DISTINCT)' },
-  { id: 'orderBy', label: 'Sort Results (ORDER BY)' },
-  { id: 'limit', label: 'Limit Results (LIMIT / OFFSET)' },
-  { id: 'groupBy', label: 'Group Data (GROUP BY)' },
-  { id: 'having', label: 'Filter Groups (HAVING)' },
-
-  // ===== ALL JOIN FEATURES (MUST STAY TOGETHER) =====
-  { id: 'inner_join', label: 'INNER JOIN (Matching Records)' },
-  { id: 'left_join', label: 'LEFT JOIN (All Left + Matching)' },
-  { id: 'right_join', label: 'RIGHT JOIN (All Right + Matching)' },
-  { id: 'full_join', label: 'FULL JOIN (All Records)' },
-  { id: 'cross_join', label: 'CROSS JOIN (All Combinations)' },
-  { id: 'self_join', label: 'SELF JOIN (Same Table Join)' },
-
-  // ===== MEDIUM PRIORITY FEATURES =====
-  { id: 'functions', label: 'Database Functions' },
-  { id: 'case', label: 'Conditional Logic (CASE Statements)' },
-  { id: 'independentLogic', label: 'Advanced Rule Logic' },
-
-
-  // ===== ADVANCED / POWER USER FEATURES =====
-  { id: 'cte', label: 'CTE (WITH Clause)' },
-  { id: 'unions', label: 'Combine Queries (UNION / UNION ALL)' },
-  { id: 'window', label: 'Window Functions (OVER / PARTITION)' },
-  { id: 'procedures', label: 'Stored Procedures' },
-
-
-
+// ===== REDESIGNED FEATURE GROUPS =====
+const FEATURE_GROUPS = [
+  {
+    id: 'core',
+    label: 'Core & UI Features',
+    features: [
+      { id: 'select', label: 'Select Data', default: true },
+      { id: 'where', label: 'Filter Data (WHERE)', default: true },
+      { id: 'select_column', label: 'Column Selector' },
+      { id: 'dragDrop', label: 'Drag & Drop Query Builder' },
+    ]
+  },
+  {
+    id: 'filtering',
+    label: 'Sorting & Grouping',
+    features: [
+      { id: 'distinct', label: 'Remove Duplicates (DISTINCT)' },
+      { id: 'orderBy', label: 'Sort Results (ORDER BY)' },
+      { id: 'limit', label: 'Limit Results (LIMIT / OFFSET)' },
+      { id: 'groupBy', label: 'Group Data (GROUP BY)' },
+      { id: 'having', label: 'Filter Groups (HAVING)' },
+      { id: 'aggregates', label: 'Aggregations (SUM, AVG)' },
+    ]
+  },
+  {
+    id: 'joins',
+    label: 'Table Joins',
+    features: [
+      { id: 'inner_join', label: 'INNER JOIN (Matching Records)' },
+      { id: 'left_join', label: 'LEFT JOIN (All Left + Matching)' },
+      { id: 'right_join', label: 'RIGHT JOIN (All Right + Matching)' },
+      { id: 'full_join', label: 'FULL JOIN (All Records)' },
+      { id: 'cross_join', label: 'CROSS JOIN (All Combinations)' },
+      { id: 'self_join', label: 'SELF JOIN (Same Table Join)' },
+    ]
+  },
+  {
+    id: 'advanced',
+    label: 'Advanced & Functions',
+    features: [
+      { id: 'subquery', label: 'Subquery Builder' },
+      { id: 'functions', label: 'Database Functions' },
+      { id: 'case', label: 'Conditional Logic (CASE)' },
+      { id: 'independentLogic', label: 'Advanced Rule Logic' },
+      { id: 'cte', label: 'CTE (WITH Clause)' },
+      { id: 'unions', label: 'Combine Queries (UNION)' },
+      { id: 'window', label: 'Window Functions (OVER)' },
+      { id: 'procedures', label: 'Stored Procedures' },
+    ]
+  }
 ];
 
-// ... [keep imports and QUERY_FEATURES exactly the same] ...
+// Flat list helper for easy mapping/updating
+const ALL_FEATURES = FEATURE_GROUPS.flatMap(group => group.features);
 
 const HistoryPanel = ({ refreshTrigger, onSelect, onOptionsChange }) => {
   const [history, setHistory] = useState([]);
   const [view, setView] = useState('list'); // 'list' | 'detail'
   const [selectedConn, setSelectedConn] = useState(null);
   const [options, setOptions] = useState({});
+  
+  // State to manage which accordion groups are open
+  // Default: Core and Filtering open, others closed
+  const [expandedGroups, setExpandedGroups] = useState({
+    core: true,
+    filtering: true,
+    joins: false,
+    advanced: false
+  });
 
   const { updateSchemaConfig } = useSchemaConfig();
 
-  // --- MOVE THIS UP HERE ---
   const resetToDefaults = useCallback(() => {
     const defaults = {};
-    QUERY_FEATURES.forEach(f => {
+    ALL_FEATURES.forEach(f => {
       defaults[f.id] = !!f.default;
     });
     setOptions(defaults);
     if (onOptionsChange) onOptionsChange(defaults);
   }, [onOptionsChange]);
 
-  // 1. Initialize Options with defaults (Now it is defined before use)
   useEffect(() => {
     resetToDefaults();
   }, [resetToDefaults]);
 
-  // 2. Fetch History List
   useEffect(() => {
     fetchHistory();
   }, [refreshTrigger]);
@@ -85,8 +99,6 @@ const HistoryPanel = ({ refreshTrigger, onSelect, onOptionsChange }) => {
       .then(res => setHistory(res.data))
       .catch(console.error);
   };
-
-  // ... [keep handleSelect, handleBack, handleDelete, toggleOption, selectAll exactly the same] ...
 
   // --- ACTIONS ---
   const handleSelect = async (conn) => {
@@ -123,12 +135,10 @@ const HistoryPanel = ({ refreshTrigger, onSelect, onOptionsChange }) => {
     }
   };
 
-// --- UPDATE YOUR toggleOption FUNCTION TO THIS ---
   const toggleOption = (id) => {
     setOptions(prev => {
       const next = { ...prev, [id]: !prev[id] };
       
-      // Feature: Make all 6 Join selections mutually exclusive
       const joinTypes = ['inner_join', 'left_join', 'right_join', 'full_join', 'cross_join', 'self_join'];
       if (joinTypes.includes(id) && next[id]) {
         joinTypes.forEach(j => { if (j !== id) next[j] = false; });
@@ -141,9 +151,16 @@ const HistoryPanel = ({ refreshTrigger, onSelect, onOptionsChange }) => {
 
   const selectAll = () => {
     const all = {};
-    QUERY_FEATURES.forEach(f => all[f.id] = true);
+    ALL_FEATURES.forEach(f => all[f.id] = true);
     setOptions(all);
     if (onOptionsChange) onOptionsChange(all);
+  };
+
+  const toggleGroup = (groupId) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupId]: !prev[groupId]
+    }));
   };
 
   // --- RENDER: LIST VIEW ---
@@ -214,17 +231,38 @@ const HistoryPanel = ({ refreshTrigger, onSelect, onOptionsChange }) => {
         </div>
       </div>
 
+      {/* Accordion List for Groups */}
       <div className="options-list">
-        {QUERY_FEATURES.map(feat => (
-          <label key={feat.id} className={`checkbox-row ${options[feat.id] ? 'active' : ''}`}>
-            <input
-              type="checkbox"
-              checked={!!options[feat.id]}
-              onChange={() => toggleOption(feat.id)}
-            />
-            <span>{feat.label}</span>
-          </label>
-        ))}
+        {FEATURE_GROUPS.map(group => {
+          const isExpanded = expandedGroups[group.id];
+          
+          return (
+            <div key={group.id} className="feature-group">
+              {/* Group Header / Toggle */}
+              <div 
+                className={`group-header ${isExpanded ? 'expanded' : ''}`}
+                onClick={() => toggleGroup(group.id)}
+              >
+                <span className="group-title">{group.label}</span>
+                <span className={`group-chevron ${isExpanded ? 'open' : ''}`}>▼</span>
+              </div>
+              
+              {/* Group Content (Checkboxes) */}
+              <div className={`group-content ${isExpanded ? 'open' : ''}`}>
+                {group.features.map(feat => (
+                  <label key={feat.id} className={`checkbox-row ${options[feat.id] ? 'active' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={!!options[feat.id]}
+                      onChange={() => toggleOption(feat.id)}
+                    />
+                    <span>{feat.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
