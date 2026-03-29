@@ -78,7 +78,7 @@ export default function Dashboard() {
     // setQuery(createDefaultQuery()); 
   };
 
-  // --- EXECUTION LOGIC ---
+// --- EXECUTION LOGIC ---
   const executeQueryCall = async (sqlToRun, pageNum = 1) => {
     if (!selectedConnId) {
       alert("Connection ID missing. Please re-select the connection from the sidebar.");
@@ -90,10 +90,16 @@ export default function Dashboard() {
     if (activeTab !== 'Result') setActiveTab('Result');
 
     try {
+      // 1. Strip the LIMIT clause from the end of the SQL string to prevent backend double-limit crashes
+      const cleanSql = sqlToRun.replace(/\s+LIMIT\s+\d+$/i, '');
+      
+      // 2. Grab the user's custom limit from the query state (fallback to 100 if empty)
+      const userLimit = (queryOptions.limit && query.limit) ? parseInt(query.limit, 10) : 100;
+
       const response = await api.post(`/db-connections/${selectedConnId}/execute`, {
-        sql: sqlToRun,
+        sql: cleanSql,
         page: pageNum,
-        limit: 100
+        limit: userLimit
       });
 
       // CRITICAL FIX: Extract 'rows' array from the response object

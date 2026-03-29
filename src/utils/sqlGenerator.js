@@ -1,4 +1,3 @@
-// frontend/src/utils/sqlGenerator.js
 import { SQL_TEMPLATES } from './operatorMapping';
 
 const escapeSQL = (val) => {
@@ -25,46 +24,7 @@ const formatParams = (operator, value) => {
   }
 
   const raw_value = value;
-  const quoted_value = `'${escapeSQL(value)}'`;
-
-  return {
-    value: quoted_value,
-    raw_value: isNaN(raw_value) ? raw_value : raw_value
-  };
-};
-
-/**
- * CRITICAL FIX: Flattens rules and sorts them chronologically by timestamp.
- * This guarantees the Base Table and JOIN structure remains identical 
- * even if rules are violently dragged-and-dropped in the UI.
- */
-const extractUniqueTables = (group) => {
-  const allRules = [];
-
-  const flatten = (g) => {
-    if (!g || !g.rules) return;
-    g.rules.forEach(rule => {
-      if (rule.type === 'group') {
-        flatten(rule);
-      } else if (rule.table) {
-        allRules.push(rule);
-      }
-    });
-  };
-
-  flatten(group);
-
-  // Stable sort by chronological creation time.
-  // The first rule ever created defaults to 0, locking it safely as the Base Table forever.
-  allRules.sort((a, b) => {
-    const timeA = a.timestamp || 0;
-    const timeB = b.timestamp || 0;
-    return timeA - timeB;
-  });
-
-  const set = new Set();
-  allRules.forEach(r => set.add(r.table));
-  return set;
+  return { value: `'${escapeSQL(value)}'`, raw_value: isNaN(raw_value) ? raw_value : raw_value };
 };
 
 const getColumnNameOnly = (fullColumnId) => {
@@ -73,253 +33,166 @@ const getColumnNameOnly = (fullColumnId) => {
   return parts.length > 0 ? parts[parts.length - 1] : fullColumnId;
 };
 
-// Generates the WHERE clause based STRICTLY on the visual UI order (Drag-and-Drop sequence)
-const processGroup = (group, aliasMap, level = 0) => {
-  if (!group || !group.rules || group.rules.length === 0) return '';
+const extractWhereColumns = (rules) => {
+  let cols = [];
+  if (!rules) return cols;
+  rules.forEach(r => {
+    if (r.type === 'group') {
+      cols = cols.concat(extractWhereColumns(r.rules));
+    } else if (r.table && r.column) {
+      cols.push({ table: r.table, column: r.column });
+    }
+  });
+  return cols;
+};
 
+const processGroup = (group, tableToAliasMap, level = 0) => {
+  if (!group || !group.rules || group.rules.length === 0) return '';
   const indent = '  '.repeat(level);
   const clauses = [];
 
   group.rules.forEach((item) => {
     let itemSQL = '';
-
     if (item.type === 'group') {
-      const innerSQL = processGroup(item, aliasMap, level + 1);
+      const innerSQL = processGroup(item, tableToAliasMap, level + 1);
       if (innerSQL) itemSQL = `(\n${innerSQL}\n${indent})`;
-    }
-    else if (item.table && item.column && item.operator) {
+    } else if (item.table && item.column && item.operator) {
       const template = SQL_TEMPLATES[item.operator];
       if (template) {
         const params = formatParams(item.operator, item.value);
-        const tableAlias = aliasMap[item.table] || item.table;
-        const colName = getColumnNameOnly(item.column);
-        const fieldName = `${tableAlias}.${colName}`;
+        const tableAlias = tableToAliasMap[item.table] || item.table.split('.').pop(); 
+        const fieldName = `${tableAlias}.${getColumnNameOnly(item.column)}`;
 
         let sql = template.replace(/{field}/g, fieldName);
-        Object.keys(params).forEach(key => {
-          sql = sql.replace(new RegExp(`{${key}}`, 'g'), params[key]);
-        });
+        Object.keys(params).forEach(key => { sql = sql.replace(new RegExp(`{${key}}`, 'g'), params[key]); });
         itemSQL = sql;
-      } else {
-        itemSQL = `-- Unknown Operator: ${item.operator}`;
       }
     }
 
     if (itemSQL) {
       if (clauses.length > 0) {
-        const condition = (item.condition || 'AND').toUpperCase();
-        clauses.push(`${indent}${condition} ${itemSQL}`);
+        clauses.push(`${indent}${(item.condition || 'AND').toUpperCase()} ${itemSQL}`);
       } else {
         clauses.push(`${indent}${itemSQL}`);
       }
     }
   });
-
   return clauses.join('\n');
 };
 
-const generateFromClause = (uniqueTables, schemaConfig, options = {}) => {
-  let joinKeyword = 'INNER JOIN'; // default
-  if (options.left_join) joinKeyword = 'LEFT JOIN';
-  if (options.right_join) joinKeyword = 'RIGHT JOIN';
-  if (options.full_join) joinKeyword = 'FULL JOIN';
-  
-  const tables = Array.from(uniqueTables);
-  if (tables.length === 0) return { sql: '', aliasMap: {} };
+const generateFromClause = (query, schemaConfig) => {
+  if (!query.baseTable) return { sql: '', aliasMap: {}, tableToAliasMap: {} };
 
-  const aliasMap = {};
-  tables.forEach((t, index) => {
-    aliasMap[t] = `t${index + 1}`;
+  const aliasMap = {}; 
+  const tableToAliasMap = {}; 
+  let tCounter = 1;
+
+  aliasMap['base'] = `t${tCounter++}`;
+  tableToAliasMap[query.baseTable] = aliasMap['base'];
+
+  (query.joins || []).forEach(j => {
+    if (j.table) {
+      const alias = `t${tCounter++}`;
+      aliasMap[j.id] = alias;
+      if (!tableToAliasMap[j.table]) tableToAliasMap[j.table] = alias;
+    }
   });
 
-  const baseTableId = tables[0];
-  const baseTableDef = schemaConfig?.Tables?.find(t => t.Id === baseTableId);
-  const baseTableName = baseTableDef ? `${baseTableDef.Schema}.${baseTableDef.TableName}` : baseTableId;
+  const baseDef = schemaConfig?.Tables?.find(t => t.Id === query.baseTable);
+  const baseName = baseDef ? `${baseDef.Schema}.${baseDef.TableName}` : query.baseTable;
+  let sql = `FROM ${baseName} ${aliasMap['base']}`;
 
-  let sql = `FROM ${baseTableName} t1`;
-
-  if (options.cross_join) {
-    for (let i = 1; i < tables.length; i++) {
-      const targetId = tables[i];
-      const targetAlias = aliasMap[targetId];
-      const targetDef = schemaConfig?.Tables?.find(t => t.Id === targetId);
-      const targetTableName = targetDef ? `${targetDef.Schema}.${targetDef.TableName}` : targetId;
-      sql += `\nCROSS JOIN ${targetTableName} ${targetAlias}`;
-    }
-    return { sql, aliasMap };
-  }
-
-  if (options.self_join) {
-    // Generate a new alias for the self-joined table
-    const selfAlias = tables.length === 1 ? 't2' : `t${tables.length + 1}`;
-    let selfJoinCondition = `t1.id = ${selfAlias}.id`; // Default fallback
-
-    // Try to find a self-referencing relationship in the schema
-    if (baseTableDef && baseTableDef.Joins) {
-      const selfJoin = baseTableDef.Joins.find(j => j.ChildTableId === baseTableId || j.ParentTableId === baseTableId);
-      if (selfJoin) {
-        const childCol = getColumnNameOnly(selfJoin.ChildColumnId);
-        const parentCol = getColumnNameOnly(selfJoin.ParentColumnId);
-        selfJoinCondition = `t1.${childCol} = ${selfAlias}.${parentCol}`;
-      }
-    }
+  (query.joins || []).forEach(join => {
+    if (!join.table) return;
     
-    // Standard JOIN keyword is used for self joins in PostgreSQL
-    sql += `\nJOIN ${baseTableName} ${selfAlias} ON ${selfJoinCondition}`;
-    aliasMap[`${baseTableId}_self`] = selfAlias; 
-    
-    // If only one table was selected in the UI, we are done
-    if (tables.length === 1) return { sql, aliasMap };
-  }
+    const targetDef = schemaConfig?.Tables?.find(t => t.Id === join.table);
+    const targetName = targetDef ? `${targetDef.Schema}.${targetDef.TableName}` : join.table;
+    const targetAlias = aliasMap[join.id];
+    const joinType = (join.type || 'INNER JOIN').toUpperCase();
 
-  const joinedSet = new Set([baseTableId]);
-  const remaining = tables.slice(1);
-  let loops = 0;
-
-  while (remaining.length > 0 && loops < 10) {
-    loops++;
-
-    for (let i = 0; i < remaining.length; i++) {
-      const targetId = remaining[i];
-      const targetAlias = aliasMap[targetId];
-      const targetDef = schemaConfig?.Tables?.find(t => t.Id === targetId);
-
-      if (!targetDef) {
-        sql += `\nCROSS JOIN ${targetId} ${targetAlias} -- Warning: Metadata missing`;
-        joinedSet.add(targetId);
-        remaining.splice(i, 1);
-        i--;
-        continue;
-      }
-
-      let joinFound = false;
-
-      if (targetDef.Joins) {
-        for (const join of targetDef.Joins) {
-          if (joinedSet.has(join.ChildTableId)) {
-            const childAlias = aliasMap[join.ChildTableId];
-            const parentAlias = targetAlias;
-            const targetTableName = `${targetDef.Schema}.${targetDef.TableName}`;
-
-            const childCol = getColumnNameOnly(join.ChildColumnId);
-            const parentCol = getColumnNameOnly(join.ParentColumnId);
-
-            sql += `\n${joinKeyword} ${targetTableName} ${targetAlias} ON ${childAlias}.${childCol} = ${parentAlias}.${parentCol}`;
-            joinedSet.add(targetId);
-            joinFound = true;
-            break;
-          }
-        }
-      }
-
-      if (!joinFound) {
-        for (const joinedId of joinedSet) {
-          const joinedDef = schemaConfig?.Tables?.find(t => t.Id === joinedId);
-          if (joinedDef && joinedDef.Joins) {
-            for (const join of joinedDef.Joins) {
-              if (join.ChildTableId === targetId) {
-                const parentAlias = aliasMap[joinedId];
-                const childAlias = targetAlias;
-                const targetTableName = `${targetDef.Schema}.${targetDef.TableName}`;
-
-                const childCol = getColumnNameOnly(join.ChildColumnId);
-                const parentCol = getColumnNameOnly(join.ParentColumnId);
-
-                sql += `\n${joinKeyword} ${targetTableName} ${targetAlias} ON ${childAlias}.${childCol} = ${parentAlias}.${parentCol}`;
-                joinedSet.add(targetId);
-                joinFound = true;
-                break;
-              }
-            }
-          }
-          if (joinFound) break;
-        }
-      }
-
-      if (joinFound) {
-        remaining.splice(i, 1);
-        i--;
-      }
+    if (joinType.includes('CROSS')) {
+      sql += `\n${joinType} ${targetName} ${targetAlias}`;
+    } else if (joinType.includes('SELF') || join.table === query.baseTable) {
+      const leftCol = getColumnNameOnly(join.onLeft) || targetDef?.Columns[0]?.ColumnName;
+      const rightCol = getColumnNameOnly(join.onRight) || targetDef?.Columns[0]?.ColumnName;
+      sql += `\nJOIN ${targetName} ${targetAlias} ON ${aliasMap['base']}.${leftCol} = ${targetAlias}.${rightCol}`;
+    } else if (join.onLeft && join.onRight) {
+      const leftCol = getColumnNameOnly(join.onLeft);
+      const rightCol = getColumnNameOnly(join.onRight);
+      const leftTableId = join.onLeft.substring(0, join.onLeft.lastIndexOf('.'));
+      
+      const lAlias = tableToAliasMap[leftTableId] || leftTableId.split('.').pop();
+      sql += `\n${joinType} ${targetName} ${targetAlias} ON ${lAlias}.${leftCol} = ${targetAlias}.${rightCol}`;
     }
-  }
+  });
 
-  if (remaining.length > 0) {
-    remaining.forEach(t => {
-      sql += `\nCROSS JOIN ${t} ${aliasMap[t]} -- Warning: No join path found`;
-    });
-  }
-
-  return { sql, aliasMap };
+  return { sql, aliasMap, tableToAliasMap };
 };
 
-// Add 'options = {}' to the parameters
 export const generatePostgresQuery = (query, schemaConfig, options = {}) => {
-  if (!query || !query.rules || query.rules.length === 0) return '-- No rules defined';
+  if (!query || !query.baseTable) return '-- Select a FROM table to start building the query.';
 
-  const uniqueTables = extractUniqueTables(query);
-  if (uniqueTables.size === 0) return '-- No tables selected';
+  const { sql: fromClause, tableToAliasMap } = generateFromClause(query, schemaConfig);
 
-  const { sql: fromClause, aliasMap } = generateFromClause(uniqueTables, schemaConfig, options);
+  let selectColumns = '*';
+  
+  if (options.select_column && query.selectAll === false) {
+    const colFragments = new Set();
+    
+    Object.keys(query.selectedColumns || {}).forEach(tableId => {
+      const alias = tableToAliasMap[tableId];
+      if (!alias) return;
+      (query.selectedColumns[tableId] || []).forEach(colId => {
+        colFragments.add(`${alias}.${getColumnNameOnly(colId)}`);
+      });
+    });
 
-  // --- NEW: Process Dynamic Selected Columns ---
-  let selectColumns = '';
+    const whereCols = extractWhereColumns(query.rules);
+    whereCols.forEach(wc => {
+      const alias = tableToAliasMap[wc.table];
+      if (alias) colFragments.add(`${alias}.${getColumnNameOnly(wc.column)}`);
+    });
 
-  if (options.select_column) {
-    const colFragments = [];
-    const usedColumns = {};
-
-    // 1. Find Auto-Selected Columns (if toggle is ON)
-    if (query.autoSelectUsedColumns) {
-      const traverse = (g) => {
-        if (!g || !g.rules) return;
-        g.rules.forEach(r => {
-          if (r.type === 'group') traverse(r);
-          else if (r.table && r.column) {
-            if (!usedColumns[r.table]) usedColumns[r.table] = new Set();
-            usedColumns[r.table].add(r.column);
-          }
-        });
-      };
-      traverse(query);
+    if (colFragments.size > 0) {
+      selectColumns = Array.from(colFragments).join(', ');
+    } else {
+      selectColumns = Object.values(tableToAliasMap).map(a => `${a}.*`).join(', ');
     }
+  } else if (!options.select_column || query.selectAll !== false) {
+    selectColumns = Object.values(tableToAliasMap).map(a => `${a}.*`).join(', ');
+  }
 
-    // 2. Combine manual selections and auto selections
-    Object.keys(aliasMap).forEach(tableId => {
-      const alias = aliasMap[tableId];
-      const manualCols = query.selectedColumns?.[tableId] || [];
-      const autoCols = usedColumns[tableId] ? Array.from(usedColumns[tableId]) : [];
-      
-      const combinedCols = Array.from(new Set([...manualCols, ...autoCols]));
+  const distinctKeyword = options.distinct ? 'DISTINCT ' : '';
+  let finalSql = `SELECT ${distinctKeyword}${selectColumns}\n${fromClause}`;
 
-      if (combinedCols.length > 0) {
-        combinedCols.forEach(colId => {
-          const colName = getColumnNameOnly(colId);
-          colFragments.push(`${alias}.${colName}`);
-        });
+  const whereSql = processGroup(query, tableToAliasMap);
+  if (whereSql) {
+    finalSql += `\nWHERE ${whereSql}`;
+  }
+
+  // --- Process ORDER BY ---
+  if (options.orderBy && query.orderBys && query.orderBys.length > 0) {
+    const orderFragments = [];
+    query.orderBys.forEach(ob => {
+      if (ob.column) {
+        // Split unique composite key 'tableId|colId'
+        const [tId, cId] = ob.column.split('|');
+        const alias = tableToAliasMap[tId] || tId.split('.').pop();
+        orderFragments.push(`${alias}.${getColumnNameOnly(cId)} ${ob.direction}`);
       }
     });
 
-    // 3. Output logic
-    if (colFragments.length > 0) {
-      selectColumns = colFragments.join(', ');
-    } else {
-      // Fallback if no columns are selected at all
-      selectColumns = Object.values(aliasMap).map(a => `${a}.*`).join(', ');
+if (orderFragments.length > 0) {
+      finalSql += `\nORDER BY ${orderFragments.join(', ')}`;
     }
-  } else {
-    // Default: If "Select Column" feature is turned off in the sidebar
-    selectColumns = Object.values(aliasMap).map(a => `${a}.*`).join(', ');
   }
 
-  // --- Check for distinct option ---
-  const distinctKeyword = options.distinct ? 'DISTINCT ' : '';
-
-  // --- Assemble final SELECT statement ---
-  let finalSql = `SELECT ${distinctKeyword}${selectColumns}\n${fromClause}`;
-
-  const whereSql = processGroup(query, aliasMap);
-  if (whereSql) {
-    finalSql += `\nWHERE ${whereSql}`;
+  // --- Process LIMIT ---
+  if (options.limit && query.limit) {
+    const limitValue = parseInt(query.limit, 10);
+    if (!isNaN(limitValue) && limitValue > 0) {
+      finalSql += `\nLIMIT ${limitValue}`;
+    }
   }
 
   return finalSql;
