@@ -41,13 +41,64 @@ const FEATURE_GROUPS = [
       { id: 'self_join', label: 'SELF JOIN (Same Table Join)' },
     ]
   },
+
+  // ===== CASE: TYPES =====
+  {
+    id: 'case_types',
+    label: 'CASE Expression Types',
+    features: [
+      { id: 'case_simple', label: 'Simple CASE (Equality Based)' },
+      { id: 'case_searched', label: 'Searched CASE (Condition Based)' },
+      { id: 'case_nested', label: 'Nested CASE (Multi-level Logic)' },
+    ]
+  },
+
+  // ===== CASE: USAGE CONTEXT =====
+  {
+    id: 'case_usage',
+    label: 'CASE Usage Context',
+    features: [
+      { id: 'case_select', label: 'CASE in SELECT (Data Transformation)' },
+      { id: 'case_where', label: 'CASE in WHERE (Dynamic Filtering)' },
+      { id: 'case_orderby', label: 'CASE in ORDER BY (Custom Sorting)' },
+      { id: 'case_groupby', label: 'CASE in GROUP BY (Derived Grouping)' },
+      { id: 'case_having', label: 'CASE in HAVING (Conditional Group Filter)' },
+    ]
+  },
+
+  // ===== CASE: ADVANCED PATTERNS =====
+  {
+    id: 'case_advanced',
+    label: 'Advanced CASE Patterns',
+    features: [
+      { id: 'case_conditional_agg', label: 'Conditional Aggregation (CASE + COUNT/SUM)' },
+      { id: 'case_pivot', label: 'Pivoting Data using CASE' },
+      { id: 'case_window', label: 'CASE with Window Functions' },
+      { id: 'case_null_handling', label: 'NULL Handling using CASE' },
+      { id: 'case_dynamic_flags', label: 'Dynamic Flags / Status Logic' },
+    ]
+  },
+
+  // ===== CASE: RELATED FUNCTIONS =====
+  {
+    id: 'case_related',
+    label: 'CASE Alternatives & Helpers',
+    features: [
+      { id: 'coalesce', label: 'COALESCE (NULL Replacement)' },
+      { id: 'nullif', label: 'NULLIF (Conditional NULL)' },
+      { id: 'greatest', label: 'GREATEST (Max चयन)' },
+      { id: 'least', label: 'LEAST (Min चयन)' },
+      { id: 'filter_clause', label: 'FILTER Clause (Aggregation Alternative)' },
+    ]
+  },
+
   {
     id: 'advanced',
     label: 'Advanced & Functions',
     features: [
       { id: 'subquery', label: 'Subquery Builder' },
       { id: 'functions', label: 'Database Functions' },
-      { id: 'case', label: 'Conditional Logic (CASE)' },
+      { id: 'case_builder', label: 'CASE Builder (Conditional Logic)' },
       { id: 'independentLogic', label: 'Advanced Rule Logic' },
       { id: 'cte', label: 'CTE (WITH Clause)' },
       { id: 'unions', label: 'Combine Queries (UNION)' },
@@ -55,9 +106,7 @@ const FEATURE_GROUPS = [
       { id: 'procedures', label: 'Stored Procedures' },
     ]
   }
-];
-
-// Flat list helper for easy mapping/updating
+];// Flat list helper for easy mapping/updating
 const ALL_FEATURES = FEATURE_GROUPS.flatMap(group => group.features);
 
 const HistoryPanel = ({ refreshTrigger, onSelect, onOptionsChange }) => {

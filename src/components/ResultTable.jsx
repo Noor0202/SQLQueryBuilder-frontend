@@ -3,6 +3,46 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Icon from './Icon';
 import '../styles/ResultTable.css';
 
+// --- UNIVERSAL DATA TYPE FORMATTER ---
+// Handles natively parsed PostgreSQL types (Ranges, Arrays, JSON, Buffers, GeoJSON)
+const formatCellValue = (val) => {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'boolean') return val ? 'true' : 'false';
+  
+  if (typeof val === 'object') {
+    // Handle Native JS Dates
+    if (val instanceof Date) return val.toISOString();
+    
+    // Handle PostgreSQL Arrays
+    if (Array.isArray(val)) {
+      return `[${val.map(v => formatCellValue(v)).join(', ')}]`;
+    }
+    
+    // Handle PostgreSQL Range objects (parsed by pg-types)
+    if ('lower' in val && 'upper' in val) {
+      const lowerBound = val.bounds ? val.bounds[0] : '[';
+      const upperBound = val.bounds ? val.bounds[1] : ']';
+      const lVal = val.lower !== null ? formatCellValue(val.lower) : '';
+      const uVal = val.upper !== null ? formatCellValue(val.upper) : '';
+      return `${lowerBound}${lVal}, ${uVal}${upperBound}`;
+    }
+    
+    // Handle PostgreSQL Bytea / Buffers
+    if (val.type === 'Buffer' && Array.isArray(val.data)) {
+      return `<Binary Data: ${val.data.length} bytes>`;
+    }
+
+    // Generic fallback for JSONB, Composites, and PostGIS GeoJSON
+    try {
+      return JSON.stringify(val);
+    } catch (e) {
+      return String(val);
+    }
+  }
+  
+  return String(val);
+};
+
 export default function ResultTable({ data, loading, error, sql, pagination, onPageChange }) {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
@@ -18,16 +58,21 @@ export default function ResultTable({ data, loading, error, sql, pagination, onP
     return Object.keys(data[0]);
   }, [data]);
 
-  // 2. Handle Client-Side Sorting (for current page)
+  // 2. Handle Client-Side Sorting (Safely sorting complex parsed objects)
   const sortedData = useMemo(() => {
     if (!sortConfig.key || !data || !Array.isArray(data)) return data || [];
 
     return [...data].sort((a, b) => {
-      const aVal = a[sortConfig.key];
-      const bVal = b[sortConfig.key];
+      let aVal = a[sortConfig.key];
+      let bVal = b[sortConfig.key];
 
-      if (aVal === null) return 1;
-      if (bVal === null) return -1;
+      if (aVal === null && bVal !== null) return 1;
+      if (bVal === null && aVal !== null) return -1;
+      if (aVal === null && bVal === null) return 0;
+
+      // Flatten objects to strings for comparison (fixes the [object Object] sorting bug)
+      if (typeof aVal === 'object') aVal = formatCellValue(aVal);
+      if (typeof bVal === 'object') bVal = formatCellValue(bVal);
 
       // Try numeric sort
       const aNum = Number(aVal);
@@ -37,8 +82,11 @@ export default function ResultTable({ data, loading, error, sql, pagination, onP
       }
 
       // Fallback to string sort
-      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      const aStr = String(aVal).toLowerCase();
+      const bStr = String(bVal).toLowerCase();
+      
+      if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
   }, [data, sortConfig]);
@@ -51,21 +99,15 @@ export default function ResultTable({ data, loading, error, sql, pagination, onP
     setSortConfig({ key, direction });
   };
 
-  // --- CRITICAL FIX: PAGINATION CALCS ---
-  // Rely strictly on the backend's pagination limit instead of inventing a 5% rule.
+  // --- PAGINATION CALCS ---
   const { page = 1, total = 0, limit = 100 } = pagination || {};
-  
   const totalPages = Math.ceil(total / limit) || 1;
   const startRow = total > 0 ? (page - 1) * limit + 1 : 0;
-  // Calculate end row based on the limit, capped at the total amount of rows
   const endRow = Math.min(page * limit, total);
 
-  // The backend already sliced the data to 100 rows, so we just use the sorted data directly
   const displayData = sortedData;
 
-
   // --- EARLY RENDER STATES ---
-
   if (loading) {
     return (
       <div className="result-container">
@@ -89,7 +131,6 @@ export default function ResultTable({ data, loading, error, sql, pagination, onP
     );
   }
 
-  // Handle Empty State
   if (!data || !Array.isArray(data) || data.length === 0) {
     return (
       <div className="result-container">
@@ -122,11 +163,8 @@ export default function ResultTable({ data, loading, error, sql, pagination, onP
         <table>
           <thead>
             <tr>
-              {/* Sr.No Header Column */}
               <th style={{ width: '60px', textAlign: 'center' }}>
-                <div className="th-content" style={{ justifyContent: 'center' }}>
-                  Sr.No
-                </div>
+                <div className="th-content" style={{ justifyContent: 'center' }}>Sr.No</div>
               </th>
               
               {columns.map((col) => (
@@ -135,10 +173,7 @@ export default function ResultTable({ data, loading, error, sql, pagination, onP
                     {col}
                     <div style={{width: '14px', display:'flex'}}> 
                       {sortConfig.key === col && (
-                        <Icon 
-                          name={sortConfig.direction === 'asc' ? 'ChevronUp' : 'ChevronDown'} 
-                          size={14} 
-                        />
+                        <Icon name={sortConfig.direction === 'asc' ? 'ChevronUp' : 'ChevronDown'} size={14} />
                       )}
                     </div>
                   </div>
@@ -149,16 +184,27 @@ export default function ResultTable({ data, loading, error, sql, pagination, onP
           <tbody>
             {displayData.map((row, rowIndex) => (
               <tr key={rowIndex}>
-                {/* Sr.No Data Cell - Uses startRow to maintain correct numbering across pages */}
                 <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#64748b', background: '#f8fafc' }}>
                   {startRow + rowIndex}
                 </td>
 
-                {columns.map((col) => (
-                  <td key={`${rowIndex}-${col}`}>
-                    {row[col] === null ? <span className="null-val">NULL</span> : String(row[col])}
-                  </td>
-                ))}
+                {columns.map((col) => {
+                  const rawVal = row[col];
+                  const formattedVal = formatCellValue(rawVal);
+                  const isComplex = typeof rawVal === 'object' && rawVal !== null;
+
+                  return (
+                    <td key={`${rowIndex}-${col}`} title={isComplex ? formattedVal : ''}>
+                      {rawVal === null ? (
+                        <span className="null-val">NULL</span>
+                      ) : (
+                        <span className={isComplex ? 'complex-val' : ''}>
+                          {formattedVal}
+                        </span>
+                      )}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

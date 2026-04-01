@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import RuleGroup from './RuleGroup';
 import { useSchemaConfig } from '../../config/SchemaConfig';
+import CaseBuilder from './CaseBuilder';
 import '../../styles/QueryBuilder.css';
 
 export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRun, options = {} }) {
@@ -33,6 +34,7 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
   ].filter(j => options[j.id]);
 
   const hasJoinsEnabled = activeJoinTypes.length > 0;
+  const showCaseBuilder = options.case_builder || options.case_simple || options.case_searched || options.case_nested;
 
   const activeTableIds = useMemo(() => {
     return [query.baseTable, ...(query.joins || []).map(j => j.table)].filter(Boolean);
@@ -111,9 +113,10 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
     setQuery({
       ...query,
       baseTable: tableId,
-      joins: [], 
-      selectedColumns: {}, 
-      selectAll: true, 
+      joins: [],
+      selectedColumns: {},
+      cases: [],
+      selectAll: true,
       rules: [{ id: uuidv4(), type: 'rule', table: '', column: '', operator: '', value: '', condition: 'and', timestamp: Date.now() }],
       orderBys: [] // Clear Order By on base reset
     });
@@ -128,23 +131,23 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
     const newJoins = [...(query.joins || [])];
     const join = { ...newJoins[idx], table: newTableId };
     const isSelf = newTableId === query.baseTable || join.type.includes('SELF');
-    
+
     if (isSelf) {
-       const targetDef = allTables.find(t => t.Id === newTableId);
-       const pk = targetDef?.Columns?.find(c => c.IsPrimaryKey) || targetDef?.Columns?.[0];
-       join.onLeft = pk?.Id || '';
-       join.onRight = pk?.Id || '';
+      const targetDef = allTables.find(t => t.Id === newTableId);
+      const pk = targetDef?.Columns?.find(c => c.IsPrimaryKey) || targetDef?.Columns?.[0];
+      join.onLeft = pk?.Id || '';
+      join.onRight = pk?.Id || '';
     } else {
-       const previousActiveIds = [query.baseTable, ...newJoins.slice(0, idx).map(j => j.table)].filter(Boolean);
-       for (const prevId of previousActiveIds) {
-         const prevDef = allTables.find(t => t.Id === prevId);
-         const relToChild = prevDef?.Joins?.find(j => j.ChildTableId === newTableId);
-         if (relToChild) { join.onLeft = relToChild.ParentColumnId; join.onRight = relToChild.ChildColumnId; break; }
-         
-         const newDef = allTables.find(t => t.Id === newTableId);
-         const relToParent = newDef?.Joins?.find(j => j.ChildTableId === prevId);
-         if (relToParent) { join.onLeft = relToParent.ChildColumnId; join.onRight = relToParent.ParentColumnId; break; }
-       }
+      const previousActiveIds = [query.baseTable, ...newJoins.slice(0, idx).map(j => j.table)].filter(Boolean);
+      for (const prevId of previousActiveIds) {
+        const prevDef = allTables.find(t => t.Id === prevId);
+        const relToChild = prevDef?.Joins?.find(j => j.ChildTableId === newTableId);
+        if (relToChild) { join.onLeft = relToChild.ParentColumnId; join.onRight = relToChild.ChildColumnId; break; }
+
+        const newDef = allTables.find(t => t.Id === newTableId);
+        const relToParent = newDef?.Joins?.find(j => j.ChildTableId === prevId);
+        if (relToParent) { join.onLeft = relToParent.ChildColumnId; join.onRight = relToParent.ParentColumnId; break; }
+      }
     }
 
     newJoins[idx] = join;
@@ -160,15 +163,15 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
     delete newCols[removedTable];
 
     const cleanRules = (rules) => rules
-        .filter(r => r.type === 'group' || r.table !== removedTable)
-        .map(r => r.type === 'group' ? { ...r, rules: cleanRules(r.rules) } : r)
-        .filter(r => r.type !== 'group' || r.rules.length > 0);
+      .filter(r => r.type === 'group' || r.table !== removedTable)
+      .map(r => r.type === 'group' ? { ...r, rules: cleanRules(r.rules) } : r)
+      .filter(r => r.type !== 'group' || r.rules.length > 0);
 
     // Scrub Order Bys that referenced the removed table
     const newOrderBys = (query.orderBys || []).filter(ob => {
-        if (!ob.column) return true;
-        const [tId] = ob.column.split('|');
-        return tId !== removedTable;
+      if (!ob.column) return true;
+      const [tId] = ob.column.split('|');
+      return tId !== removedTable;
     });
 
     setQuery({ ...query, joins: newJoins, selectedColumns: newCols, rules: cleanRules(query.rules || []), orderBys: newOrderBys });
@@ -177,7 +180,7 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
   const updateJoin = (idx, key, val) => {
     const newJoins = [...(query.joins || [])];
     newJoins[idx] = { ...newJoins[idx], [key]: val };
-    
+
     if (key === 'type' && val.includes('CROSS')) {
       newJoins[idx].onLeft = '';
       newJoins[idx].onRight = '';
@@ -187,7 +190,7 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
 
   // --- ORDER BY HANDLERS ---
   const addOrderBy = () => {
-    setQuery({ ...query, orderBys: [...(query.orderBys || []), { id: uuidv4(), column: '', direction: 'ASC' }]});
+    setQuery({ ...query, orderBys: [...(query.orderBys || []), { id: uuidv4(), column: '', direction: 'ASC' }] });
   };
 
   const updateOrderBy = (idx, key, val) => {
@@ -226,7 +229,7 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
   const addSelectedColumn = (tableId, colId) => {
     const current = query.selectedColumns?.[tableId] || [];
     if (!current.includes(colId)) {
-      setQuery({ ...query, selectedColumns: { ...(query.selectedColumns || {}), [tableId]: [...current, colId] }});
+      setQuery({ ...query, selectedColumns: { ...(query.selectedColumns || {}), [tableId]: [...current, colId] } });
     }
     setSearchTerm('');
     setIsColMenuOpen(false);
@@ -272,18 +275,18 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
           <div className={`qb-step ${!query.baseTable ? 'disabled' : ''}`}>
             <div className="step-header">
               <div className="sql-keyword">
-                <span className="step-badge">{stepCounter++}</span> SELECT COLUMNS 
+                <span className="step-badge">{stepCounter++}</span> SELECT COLUMNS
                 {options.distinct && <span className="sql-distinct-badge">DISTINCT ACTIVE</span>}
               </div>
             </div>
 
             <div className="radio-toggle-group">
               <label className="radio-label">
-                <input type="radio" checked={isSelectAll} onChange={() => setQuery({...query, selectAll: true})} disabled={!query.baseTable} /> 
+                <input type="radio" checked={isSelectAll} onChange={() => setQuery({ ...query, selectAll: true })} disabled={!query.baseTable} />
                 Auto-Select All Columns (*)
               </label>
               <label className="radio-label">
-                <input type="radio" checked={!isSelectAll} onChange={() => setQuery({...query, selectAll: false})} disabled={!query.baseTable} /> 
+                <input type="radio" checked={!isSelectAll} onChange={() => setQuery({ ...query, selectAll: false })} disabled={!query.baseTable} />
                 Specific Columns (Auto-includes WHERE columns)
               </label>
             </div>
@@ -293,12 +296,12 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
                 <div className="sql-token-container">
                   {Object.keys(displayCols).map(tableId => {
                     const tableDef = availableTableDefs.find(t => t.Id === tableId);
-                    if (!tableDef) return null; 
-                    
+                    if (!tableDef) return null;
+
                     return Array.from(displayCols[tableId]).map(colId => {
                       const colDef = tableDef.Columns.find(c => c.Id === colId);
                       if (!colDef) return null;
-                      
+
                       const isWhereForced = whereCols.some(wc => wc.table === tableId && wc.column === colId);
 
                       return (
@@ -311,7 +314,7 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
                             }
                             const currentCols = query.selectedColumns[tableId] || [];
                             const nextCols = currentCols.filter(id => id !== colId);
-                            
+
                             // Scrub ORDER BYs if they use this deleted column
                             const newOrderBys = (query.orderBys || []).filter(ob => ob.column !== `${tableId}|${colId}`);
 
@@ -321,9 +324,9 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
                       );
                     });
                   })}
-                  
-                  <input 
-                    className="sql-search-input" 
+
+                  <input
+                    className="sql-search-input"
                     placeholder="Search columns to add..."
                     value={searchTerm}
                     disabled={!query.baseTable}
@@ -336,8 +339,8 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
                 {isColMenuOpen && filteredColumnsList.length > 0 && (
                   <div className="sql-dropdown">
                     {filteredColumnsList.map((item, index) => (
-                      <div 
-                        key={`${item.table.Id}-${item.col.Id}`} 
+                      <div
+                        key={`${item.table.Id}-${item.col.Id}`}
                         className={`sql-dropdown-item ${index === focusedColIndex ? 'focused' : ''}`}
                         style={index === focusedColIndex ? { background: '#eef2ff', borderLeft: '3px solid #4f46e5' } : {}}
                         onMouseEnter={() => setFocusedColIndex(index)}
@@ -351,6 +354,24 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* STEP: CASE BUILDER (CUSTOM COLUMNS) */}
+        {showCaseBuilder && (
+          <div className={`qb-step ${!query.baseTable ? 'disabled' : ''}`}>
+            <div className="step-header">
+              <div className="sql-keyword">
+                <span className="step-badge">{stepCounter++}</span> CASE EXPRESSIONS (CUSTOM COLUMNS)
+              </div>
+            </div>
+            <CaseBuilder
+              cases={query.cases || []}
+              setCases={(newCases) => setQuery({ ...query, cases: newCases })}
+              activeTableIds={activeTableIds}
+              allTables={allTables}
+              options={options}
+            />
           </div>
         )}
 
@@ -372,18 +393,18 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
               <div className="sql-keyword"><span className="step-badge">{stepCounter++}</span> JOINS</div>
               <button className="btn-sql-action" onClick={addJoin} disabled={!query.baseTable}>+ Add Join</button>
             </div>
-            
-            <div className="sql-indent-group" style={{borderLeft: 'none', marginLeft: 0, paddingLeft: 0}}>
-              {(query.joins || []).map((join, idx) => {
-                 const relatedIds = getRelatedTableIds([query.baseTable, ...query.joins.slice(0,idx).map(j=>j.table)].filter(Boolean));
-                 const baseDefsForLeft = availableTableDefs.slice(0, idx + 1); 
-                 const joinTableDef = allTables.find(t => t.Id === join.table);
-                 const isCross = join.type.includes('CROSS');
-                 const isSelf = join.table === query.baseTable || join.type.includes('SELF');
 
-                 return (
+            <div className="sql-indent-group" style={{ borderLeft: 'none', marginLeft: 0, paddingLeft: 0 }}>
+              {(query.joins || []).map((join, idx) => {
+                const relatedIds = getRelatedTableIds([query.baseTable, ...query.joins.slice(0, idx).map(j => j.table)].filter(Boolean));
+                const baseDefsForLeft = availableTableDefs.slice(0, idx + 1);
+                const joinTableDef = allTables.find(t => t.Id === join.table);
+                const isCross = join.type.includes('CROSS');
+                const isSelf = join.table === query.baseTable || join.type.includes('SELF');
+
+                return (
                   <div key={join.id} className="sql-row" style={{ display: 'grid', gridTemplateColumns: 'auto auto auto auto auto auto 40px', alignItems: 'center' }}>
-                    
+
                     <select className="sql-input sql-logic-select" value={join.type} onChange={(e) => updateJoin(idx, 'type', e.target.value)}>
                       {activeJoinTypes.map(jt => <option key={jt.id} value={jt.label}>{jt.label}</option>)}
                     </select>
@@ -391,14 +412,14 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
                     <select className={`sql-input ${!join.table ? 'invalid' : ''}`} value={join.table} onChange={(e) => handleJoinTableChange(idx, e.target.value)}>
                       <option value="">Select Target Table...</option>
                       {isSelf ? (
-                        <option value={query.baseTable}>★ {allTables.find(t=>t.Id === query.baseTable)?.TableName} (Self)</option>
+                        <option value={query.baseTable}>★ {allTables.find(t => t.Id === query.baseTable)?.TableName} (Self)</option>
                       ) : isCross ? (
                         allTables.map(t => <option key={t.Id} value={t.Id}>{t.TableName}</option>)
                       ) : (
                         allTables.filter(t => relatedIds.includes(t.Id)).map(t => <option key={t.Id} value={t.Id}>★ {t.TableName}</option>)
                       )}
                     </select>
-                    
+
                     {!isCross && (
                       <>
                         <span className="sql-logic">ON</span>
@@ -410,20 +431,20 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
                             </optgroup>
                           ))}
                         </select>
-                        <span style={{fontWeight: '800', color: '#64748b'}}>=</span>
+                        <span style={{ fontWeight: '800', color: '#64748b' }}>=</span>
                         <select disabled={!isSelf} className={`sql-input ${!join.onRight ? 'invalid' : ''}`} value={join.onRight} onChange={(e) => updateJoin(idx, 'onRight', e.target.value)}>
                           <option value="">Right Column...</option>
                           {joinTableDef?.Columns.map(c => <option key={c.Id} value={c.Id}>{c.ColumnName}</option>)}
                         </select>
                       </>
                     )}
-                    {isCross && <div style={{gridColumn: 'span 4'}}></div>}
-                    
+                    {isCross && <div style={{ gridColumn: 'span 4' }}></div>}
+
                     <button className="btn-sql-remove" onClick={() => removeJoin(idx)}>✕</button>
                   </div>
-                 )
+                )
               })}
-              {query.joins?.length === 0 && <span style={{fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic'}}>No joins configured.</span>}
+              {query.joins?.length === 0 && <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>No joins configured.</span>}
             </div>
           </div>
         )}
@@ -434,13 +455,13 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
             <div className="step-header">
               <div className="sql-keyword"><span className="step-badge">{stepCounter++}</span> CONDITIONS (WHERE)</div>
             </div>
-            
-            <RuleGroup 
-              ruleGroup={query} 
-              onUpdate={setQuery} 
+
+            <RuleGroup
+              ruleGroup={query}
+              onUpdate={setQuery}
               options={options}
               isRoot={true}
-              availableTables={activeTableIds} 
+              availableTables={activeTableIds}
             />
           </div>
         )}
@@ -452,47 +473,47 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
               <div className="sql-keyword"><span className="step-badge">{stepCounter++}</span> ORDER BY</div>
               <button className="btn-sql-action" onClick={addOrderBy} disabled={!query.baseTable || availableOrderByColumns.length === 0}>+ Add Sort</button>
             </div>
-            
-            <div className="sql-indent-group" style={{borderLeft: 'none', marginLeft: 0, paddingLeft: 0}}>
+
+            <div className="sql-indent-group" style={{ borderLeft: 'none', marginLeft: 0, paddingLeft: 0 }}>
               {(query.orderBys || []).map((ob, idx) => (
-                 <div key={ob.id} className="sql-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    
-                    <select 
-                      className={`sql-input ${!ob.column ? 'invalid' : ''}`} 
-                      value={ob.column} 
-                      onChange={(e) => updateOrderBy(idx, 'column', e.target.value)}
-                      style={{ flex: 1 }}
-                    >
-                      <option value="">Select Column to Sort...</option>
-                      {availableOrderByColumns.map(c => (
-                         <option 
-                           key={`${c.tableId}|${c.colId}`} 
-                           value={`${c.tableId}|${c.colId}`}
-                           disabled={(query.orderBys || []).some((o, i) => i !== idx && o.column === `${c.tableId}|${c.colId}`)}
-                         >
-                           {c.tableName}.{c.colName}
-                         </option>
-                      ))}
-                    </select>
+                <div key={ob.id} className="sql-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
 
-                    <select 
-                      className="sql-input sql-logic-select" 
-                      value={ob.direction} 
-                      onChange={(e) => updateOrderBy(idx, 'direction', e.target.value)}
-                      style={{ width: '90px' }}
-                    >
-                      <option value="ASC">ASC</option>
-                      <option value="DESC">DESC</option>
-                    </select>
+                  <select
+                    className={`sql-input ${!ob.column ? 'invalid' : ''}`}
+                    value={ob.column}
+                    onChange={(e) => updateOrderBy(idx, 'column', e.target.value)}
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">Select Column to Sort...</option>
+                    {availableOrderByColumns.map(c => (
+                      <option
+                        key={`${c.tableId}|${c.colId}`}
+                        value={`${c.tableId}|${c.colId}`}
+                        disabled={(query.orderBys || []).some((o, i) => i !== idx && o.column === `${c.tableId}|${c.colId}`)}
+                      >
+                        {c.tableName}.{c.colName}
+                      </option>
+                    ))}
+                  </select>
 
-                    <div style={{ display: 'flex', gap: '4px', borderLeft: '1px solid #cbd5e1', paddingLeft: '8px', marginLeft: '4px' }}>
-                        <button className="btn-sql-icon" onClick={() => moveOrderBy(idx, -1)} disabled={idx === 0} title="Move Up">↑</button>
-                        <button className="btn-sql-icon" onClick={() => moveOrderBy(idx, 1)} disabled={idx === (query.orderBys || []).length - 1} title="Move Down">↓</button>
-                        <button className="btn-sql-remove" onClick={() => removeOrderBy(idx)} title="Remove Sort">✕</button>
-                    </div>
-                 </div>
+                  <select
+                    className="sql-input sql-logic-select"
+                    value={ob.direction}
+                    onChange={(e) => updateOrderBy(idx, 'direction', e.target.value)}
+                    style={{ width: '90px' }}
+                  >
+                    <option value="ASC">ASC</option>
+                    <option value="DESC">DESC</option>
+                  </select>
+
+                  <div style={{ display: 'flex', gap: '4px', borderLeft: '1px solid #cbd5e1', paddingLeft: '8px', marginLeft: '4px' }}>
+                    <button className="btn-sql-icon" onClick={() => moveOrderBy(idx, -1)} disabled={idx === 0} title="Move Up">↑</button>
+                    <button className="btn-sql-icon" onClick={() => moveOrderBy(idx, 1)} disabled={idx === (query.orderBys || []).length - 1} title="Move Down">↓</button>
+                    <button className="btn-sql-remove" onClick={() => removeOrderBy(idx)} title="Remove Sort">✕</button>
+                  </div>
+                </div>
               ))}
-{query.orderBys?.length === 0 && <span style={{fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic'}}>No sorting applied.</span>}
+              {query.orderBys?.length === 0 && <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>No sorting applied.</span>}
             </div>
           </div>
         )}
@@ -503,7 +524,7 @@ export default function QueryBuilder({ query, setQuery, createDefaultQuery, onRu
             <div className="step-header" style={{ marginBottom: '8px' }}>
               <div className="sql-keyword"><span className="step-badge">{stepCounter++}</span> LIMIT RESULTS</div>
             </div>
-            
+
             <div className="sql-row" style={{ display: 'inline-flex', alignItems: 'center', gap: '12px', padding: '12px 16px' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Limit to:</span>
               <input
